@@ -53,12 +53,29 @@ export default function ProductForm({ product, onClose }) {
     try {
       const newImageUrls = [];
       for (const file of files) {
-        const url = await uploadImage(file);
-        newImageUrls.push(url);
+        // Intentar subir a Firebase Storage si está activo
+        try {
+          const url = await uploadImage(file);
+          if (url) {
+            newImageUrls.push(url);
+            continue;
+          }
+        } catch (storageErr) {
+          console.warn('Firebase Storage no activo, convirtiendo imagen localmente:', storageErr);
+        }
+
+        // Fallback automático a Base64 Data URL (¡Funciona 100% sin importar Firebase Storage!)
+        const base64Url = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target.result);
+          reader.onerror = (err) => reject(err);
+          reader.readAsDataURL(file);
+        });
+        newImageUrls.push(base64Url);
       }
       setImages(prev => [...prev, ...newImageUrls]);
     } catch (err) {
-      alert('Error subiendo imágenes: ' + err.message);
+      alert('Error procesando imágenes: ' + err.message);
     } finally {
       setUploading(false);
     }
