@@ -36,23 +36,29 @@ export const PALETA_NIVELES = ['Iniciación', 'Intermedio', 'Avanzado', 'Pro'];
 
 export const PALETA_TEXTURAS = ['Lisa', 'Rugosa', '3D'];
 
-// ─── Marcas (se ampliarán dinámicamente) ───
+// ─── Marcas con alias internos para búsqueda ───
+// Cada entrada: { label: 'Nombre visible', aliases: ['variante1', 'variante2', ...] }
 export const BRANDS = [
-  'Bullpadel',
-  'Head',
-  'Nox',
-  'Adidas',
-  'Wilson',
-  'Babolat',
-  'Varlion',
-  'StarVie',
-  'Siux',
-  'Drop Shot',
-  'Dunlop',
-  'Kelme',
-  'Asics',
-  'Joma',
-  'Cartri',
+  { label: 'Adidas',      aliases: ['Adidas'] },
+  { label: 'Bullpadel',   aliases: ['Bullpadel'] },
+  { label: 'Coast',       aliases: ['Coast'] },
+  { label: 'Hirostar',    aliases: ['Hirostar'] },
+  { label: 'Hyperlight',  aliases: ['Hyperlight'] },
+  { label: "J'Hayber",   aliases: ["J'Hayber", 'JHayber', 'J Hayber'] },
+  { label: 'Madma',       aliases: ['Madma'] },
+  { label: 'Magnus',      aliases: ['Magnus'] },
+  { label: 'Nox',         aliases: ['Nox'] },
+  { label: 'Odea',        aliases: ['Odea', 'Odear', 'OD PRO', 'Od Pro', 'OD PRO'] },
+  { label: 'Royal',       aliases: ['Royal'] },
+  { label: 'Sane',        aliases: ['Sane'] },
+  { label: 'Saro',        aliases: ['Saro'] },
+  { label: 'Siux',        aliases: ['Siux'] },
+  { label: 'Softee',      aliases: ['Softee'] },
+  { label: 'Toalson',     aliases: ['Toalson'] },
+  { label: 'Versus',      aliases: ['Versus'] },
+  { label: 'Wilson',      aliases: ['Wilson'] },
+  { label: 'Winar',       aliases: ['Winar'] },
+  { label: 'Wingpadel',   aliases: ['Wingpadel'] },
 ];
 
 // ─── Opciones de Transporte ───
