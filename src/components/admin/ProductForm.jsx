@@ -32,8 +32,8 @@ async function removeWhiteBackground(file, tolerance = 30) {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
-      // Limitar a 600px para no exceder Firestore en caso de fallback Base64
-      const MAX = 600;
+      // Limitar a 400px para no exceder Firestore en caso de fallback Base64
+      const MAX = 400;
       const scale = Math.min(1, MAX / Math.max(img.width, img.height));
       const w = Math.round(img.width * scale);
       const h = Math.round(img.height * scale);
