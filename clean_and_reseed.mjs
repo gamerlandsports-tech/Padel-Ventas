@@ -117,8 +117,15 @@ function classifyProduct(name, sku, defaultBrand = '') {
   const lower = name.toLowerCase();
 
   let brand = defaultBrand;
-  const knownBrands = ['Bullpadel', 'Nox', 'Head', 'Adidas', 'Siux', 'Wilson', 'Varlion', 'Black Crown', 'Cartri', 'Bewe', 'Odea', 'Orygen', 'Sane', 'Toalson', 'Madma', 'Magnus', 'Winar'];
-  const foundBrand = knownBrands.find(b => lower.includes(b.toLowerCase()));
+  const knownBrands = [
+    'Bullpadel', 'Nox', 'Head', 'Adidas', 'Siux', 'Wilson', 'Varlion',
+    'Black Crown', 'Cartri', 'Bewe', 'Sane', 'Toalson', 'Madma', 'Magnus', 'Winar',
+    'OD PRO', 'Odear', 'Odea', 'Lasaig', 'Prokennex', 'Wingpadel', 'Versus',
+    'Softee', 'Hirostar', 'Hyperlight', 'Toalson', 'Coast', 'Saro', 'Royal',
+  ];
+  // Buscar primero prefijos exactos para evitar coincidencias parciales
+  const foundBrand = knownBrands.find(b => lower.startsWith(b.toLowerCase()))
+                  || knownBrands.find(b => lower.includes(b.toLowerCase()));
   if (foundBrand) brand = foundBrand;
 
   let category = 'paletas';
