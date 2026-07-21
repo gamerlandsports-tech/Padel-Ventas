@@ -40,11 +40,13 @@ export const PALETA_TEXTURAS = ['Lisa', 'Rugosa', '3D'];
 // Cada entrada: { label: 'Nombre visible', aliases: ['variante1', 'variante2', ...] }
 export const BRANDS = [
   { label: 'Adidas',      aliases: ['Adidas'] },
+  { label: 'Black Crown', aliases: ['Black Crown', 'Blackcrown'] },
   { label: 'Bullpadel',   aliases: ['Bullpadel'] },
   { label: 'Coast',       aliases: ['Coast'] },
   { label: 'Hirostar',    aliases: ['Hirostar'] },
   { label: 'Hyperlight',  aliases: ['Hyperlight'] },
   { label: "J'Hayber",   aliases: ["J'Hayber", 'JHayber', 'J Hayber'] },
+  { label: 'Lasaig',      aliases: ['Lasaig'] },
   { label: 'Madma',       aliases: ['Madma'] },
   { label: 'Magnus',      aliases: ['Magnus'] },
   { label: 'Nox',         aliases: ['Nox'] },

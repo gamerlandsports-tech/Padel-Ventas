@@ -23,12 +23,75 @@ async function uploadToCloudinary(file) {
   return data.secure_url;
 }
 
-async function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (event) => resolve(event.target.result);
-    reader.onerror = (err) => reject(err);
-    reader.readAsDataURL(file);
+/**
+ * Elimina el fondo blanco/claro de una imagen usando flood-fill desde los bordes.
+ * Devuelve un data URL de PNG con fondo transparente.
+ */
+async function removeWhiteBackground(file, tolerance = 30) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      // Limitar a 1200px para no exceder Firestore
+      const MAX = 1200;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(objectUrl);
+
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const d = imgData.data;
+
+      // Determina si un pixel es "fondo blanco" dado su posición
+      const isBackground = (i) => {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        return r >= 255 - tolerance && g >= 255 - tolerance && b >= 255 - tolerance;
+      };
+
+      const visited = new Uint8Array(w * h);
+      const stack = [];
+
+      // Sembrar desde los 4 bordes
+      for (let x = 0; x < w; x++) {
+        stack.push(x, 0);
+        stack.push(x, h - 1);
+      }
+      for (let y = 1; y < h - 1; y++) {
+        stack.push(0, y);
+        stack.push(w - 1, y);
+      }
+
+      // BFS flood-fill
+      while (stack.length) {
+        const y = stack.pop();
+        const x = stack.pop();
+        if (x < 0 || x >= w || y < 0 || y >= h) continue;
+        const pidx = y * w + x;
+        if (visited[pidx]) continue;
+        visited[pidx] = 1;
+        const i4 = pidx * 4;
+        if (!isBackground(i4)) continue;
+        d[i4 + 3] = 0; // transparente
+        stack.push(x - 1, y, x + 1, y, x, y - 1, x, y + 1);
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => {
+      // Si falla, usar base64 normal
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+      URL.revokeObjectURL(objectUrl);
+    };
+    img.src = objectUrl;
   });
 }
 
@@ -88,13 +151,11 @@ export default function ProductForm({ product, onClose }) {
         continue;
       }
 
-      setUploadStatus(`Subiendo ${file.name}...`);
-      
-      // Siempre usar Base64 — funciona sin Firebase Storage ni servicios externos
+      setUploadStatus(`Quitando fondo de ${file.name}...`);
       try {
-        const base64 = await fileToBase64(file);
-        newUrls.push(base64);
-        setUploadStatus(`✓ ${file.name} cargada`);
+        const pngUrl = await removeWhiteBackground(file);
+        newUrls.push(pngUrl);
+        setUploadStatus(`✓ ${file.name} lista (fondo eliminado)`);
       } catch (err) {
         alert(`Error procesando ${file.name}: ${err.message}`);
       }

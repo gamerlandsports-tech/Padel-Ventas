@@ -45,16 +45,13 @@ export default function ProductCard({ product, index = 0 }) {
         </div>
       )}
 
-      {/* Image container con fondo neutro que permite ver el producto sin el fondo blanco */}
-      <div className="product-card-image-wrap">
-        <img
-          className="product-card-image"
-          src={imageUrl}
-          alt={product.name}
-          loading="lazy"
-          style={{ mixBlendMode: 'multiply' }}
-        />
-      </div>
+      {/* Image */}
+      <img
+        className="product-card-image"
+        src={imageUrl}
+        alt={product.name}
+        loading="lazy"
+      />
 
       {/* Out of Stock Badge */}
       {product.inStock === false && (

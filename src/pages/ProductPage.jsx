@@ -75,12 +75,8 @@ export default function ProductPage() {
       <div className="product-detail-grid">
         {/* Gallery */}
         <div className="product-gallery">
-          <div className="product-gallery-main" style={{ background: '#fff', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-            <img
-              src={images[activeImage]}
-              alt={product.name}
-              style={{ mixBlendMode: 'multiply', width: '100%', height: '100%', objectFit: 'contain', padding: '16px' }}
-            />
+          <div className="product-gallery-main">
+            <img src={images[activeImage]} alt={product.name} />
           </div>
           {images.length > 1 && (
             <div className="product-gallery-thumbs scroll-row">
@@ -89,9 +85,8 @@ export default function ProductPage() {
                   key={i}
                   className={`product-gallery-thumb ${i === activeImage ? 'active' : ''}`}
                   onClick={() => setActiveImage(i)}
-                  style={{ background: '#fff', overflow: 'hidden' }}
                 >
-                  <img src={img} alt={`Thumb ${i}`} style={{ mixBlendMode: 'multiply' }} />
+                  <img src={img} alt={`Thumb ${i}`} />
                 </div>
               ))}
             </div>
