@@ -94,12 +94,33 @@ async function followRedirects(startUrl, method = 'GET', postData = null) {
 }
 
 /**
- * Clasificador avanzado de categoría y subcategoría según el título y SKU
+ * Función robusta para transformar precios del portal ("464,035.00" -> 464035)
  */
+function parsePriceString(priceStr) {
+  if (!priceStr) return 0;
+  let cleaned = priceStr.trim();
+  const lastDot = cleaned.lastIndexOf('.');
+  const lastComma = cleaned.lastIndexOf(',');
+
+  if (lastComma > -1 && lastDot > -1) {
+    if (lastDot > lastComma) {
+      // Formato EE.UU.: "464,035.00" -> coma es miles, punto es decimal
+      cleaned = cleaned.replace(/,/g, '');
+    } else {
+      // Formato ES: "464.035,00" -> punto es miles, coma es decimal
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    }
+  } else if (lastComma > -1) {
+    cleaned = cleaned.replace(/,/g, '');
+  }
+  
+  const val = parseFloat(cleaned);
+  return isNaN(val) ? 0 : val;
+}
+
 function classifyProduct(name, sku, defaultBrand = '') {
   const lower = name.toLowerCase();
 
-  // 1. Detectar Marca
   let brand = defaultBrand;
   const knownBrands = ['Bullpadel', 'Nox', 'Head', 'Adidas', 'Siux', 'Wilson', 'Varlion', 'Black Crown', 'Cartri', 'Bewe', 'Odea', 'Orygen', 'Sane', 'Toalson', 'Madma', 'Magnus', 'Winar'];
   const foundBrand = knownBrands.find(b => lower.includes(b.toLowerCase()));
@@ -108,7 +129,6 @@ function classifyProduct(name, sku, defaultBrand = '') {
   let category = 'paletas';
   let subcategory = '';
 
-  // 2. Clasificar por palabras clave
   if (lower.includes('zapatilla') || lower.includes('calzado') || lower.includes('shoe') || sku.includes('ZAP')) {
     category = 'zapatillas';
   } else if (lower.includes('bolso') || lower.includes('mochila') || lower.includes('paletero') || lower.includes('raquetera') || lower.includes('neceser') || lower.includes('trolley')) {
@@ -124,7 +144,6 @@ function classifyProduct(name, sku, defaultBrand = '') {
   ) {
     category = 'accesorios';
 
-    // Subcategorías de accesorios
     if (lower.includes('grip') || lower.includes('overgrip')) {
       subcategory = 'cubre-grips';
     } else if (lower.includes('protector')) {
@@ -163,9 +182,8 @@ function parseProductsFromHtml(html, defaultBrand = '') {
   while ((match = regex.exec(html)) !== null) {
     const sku = match[1].trim();
     const name = match[2].trim();
-    const rawPrice = match[3].trim().replace(/\./g, '').replace(',', '.');
-    const priceWholesale = parseFloat(rawPrice) || 0;
-    const priceRetail = Math.round(priceWholesale * 1.25);
+    const priceWholesale = parsePriceString(match[3]);
+    const priceRetail = Math.round((priceWholesale * 1.25) * 100) / 100;
 
     const { category, subcategory, brand } = classifyProduct(name, sku, defaultBrand);
 
@@ -183,6 +201,7 @@ function parseProductsFromHtml(html, defaultBrand = '') {
       description: `Código oficial: ${sku}. Marca original: ${brand}. Excelente calidad y rendimiento garantizado.`,
       isOffer: false,
       active: true,
+      inStock: true,
       featured: isPaleta,
       images: [
         `https://placehold.co/600x600/12121a/00f0ff?text=${encodeURIComponent(name)}`
@@ -204,16 +223,16 @@ function parseProductsFromHtml(html, defaultBrand = '') {
 }
 
 async function cleanAndReseed() {
-  console.log("=== 1. LIMPIANDO PRODUCTOS ANTERIORES EN FIREBASE ===");
+  console.log("=== 1. LIMPIANDO PRODUCTOS EN FIREBASE CON PRECIOS INCORRECTOS ===");
   const snapshot = await getDocs(collection(db, 'products'));
   let deletedCount = 0;
   for (const docSnap of snapshot.docs) {
     await deleteDoc(doc(db, 'products', docSnap.id));
     deletedCount++;
   }
-  console.log(`✓ Se eliminaron ${deletedCount} productos de prueba antiguos.`);
+  console.log(`✓ Se eliminaron ${deletedCount} productos.`);
 
-  console.log("\n=== 2. INICIANDO EXTRACCIÓN Y RECLASIFICACIÓN EXACTA DEL MENÚ ===");
+  console.log("\n=== 2. INICIANDO IMPORTACIÓN CON PRECIOS COMPLETOS EN MILES ($464.035,00) ===");
   
   const initialRes = await makeRequest('/Login.aspx', 'GET');
   const vs = (initialRes.body.match(/id="__VIEWSTATE"\s+value="([^"]*)"/) || [])[1] || '';
@@ -255,20 +274,20 @@ async function cleanAndReseed() {
     
     let kwCount = 0;
     for (const prod of products) {
-      if (processedSkus.has(prod.sku)) continue; // Evitar duplicados si aparece en 2 búsquedas
+      if (processedSkus.has(prod.sku)) continue;
       processedSkus.add(prod.sku);
 
       prod.createdAt = new Date();
       prod.updatedAt = new Date();
       await addDoc(collection(db, 'products'), prod);
-      console.log(`   + [${prod.category.toUpperCase()}${prod.subcategory ? '/' + prod.subcategory : ''}] ${prod.name} -> $${prod.priceRetail}`);
+      console.log(`   + [${prod.category.toUpperCase()}] ${prod.name} -> Mayorista: $${prod.priceWholesale.toLocaleString('es-AR')} | Minorista: $${prod.priceRetail.toLocaleString('es-AR')}`);
       kwCount++;
       totalUploaded++;
     }
-    console.log(`  ✓ ${kwCount} nuevos productos guardados para "${kw}".`);
+    console.log(`  ✓ ${kwCount} productos procesados con importes completos para "${kw}".`);
   }
 
-  console.log(`\n🎉 ¡RECLASIFICACIÓN Y CARGA COMPLETADA! Se cargaron ${totalUploaded} productos vinculados a los menúes principales.`);
+  console.log(`\n🎉 ¡REIMPORTACIÓN COMPLETADA! Se crearon ${totalUploaded} productos con sus montos reales de miles.`);
   process.exit(0);
 }
 

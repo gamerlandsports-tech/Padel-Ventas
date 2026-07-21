@@ -93,6 +93,26 @@ async function followRedirects(startUrl, method = 'GET', postData = null) {
   }
 }
 
+function parsePriceString(priceStr) {
+  if (!priceStr) return 0;
+  let cleaned = priceStr.trim();
+  const lastDot = cleaned.lastIndexOf('.');
+  const lastComma = cleaned.lastIndexOf(',');
+
+  if (lastComma > -1 && lastDot > -1) {
+    if (lastDot > lastComma) {
+      cleaned = cleaned.replace(/,/g, '');
+    } else {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    }
+  } else if (lastComma > -1) {
+    cleaned = cleaned.replace(/,/g, '');
+  }
+  
+  const val = parseFloat(cleaned);
+  return isNaN(val) ? 0 : val;
+}
+
 function extractSupplierPrices(html) {
   const priceMap = new Map();
   const regex = /<span[^>]*id="MainContent_rptResults_lblArticulo_\d+"[^>]*>\s*([^<]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblDescription_\d+"[^>]*>\s*([^<]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblUnitPrice_\d+"[^>]*>\s*([\d\.,]+)<\/span>/gi;
@@ -101,24 +121,19 @@ function extractSupplierPrices(html) {
   while ((match = regex.exec(html)) !== null) {
     const sku = match[1].trim();
     const name = match[2].trim();
-    const rawPrice = match[3].trim().replace(/\./g, '').replace(',', '.');
-    const priceWholesale = parseFloat(rawPrice) || 0;
-    
-    // 2 decimales exactos
-    const exactWholesale = Math.round(priceWholesale * 100) / 100;
-    const exactRetail = Math.round((exactWholesale * 1.25) * 100) / 100;
+    const priceWholesale = parsePriceString(match[3]);
+    const priceRetail = Math.round((priceWholesale * 1.25) * 100) / 100;
 
-    priceMap.set(sku, { priceWholesale: exactWholesale, priceRetail: exactRetail });
-    priceMap.set(name, { priceWholesale: exactWholesale, priceRetail: exactRetail });
+    priceMap.set(sku, { priceWholesale, priceRetail });
+    priceMap.set(name, { priceWholesale, priceRetail });
   }
 
   return priceMap;
 }
 
 async function syncPrices() {
-  console.log("=== SINCRONIZACIÓN DE PRECIOS EN TIEMPO REAL CON EL PROVEEDOR ===");
+  console.log("=== SINCRONIZACIÓN DE PRECIOS CON MONTOS EN MILES CON EL PROVEEDOR ===");
   
-  // 1. Iniciar sesión en el portal
   const initialRes = await makeRequest('/Login.aspx', 'GET');
   const vs = (initialRes.body.match(/id="__VIEWSTATE"\s+value="([^"]*)"/) || [])[1] || '';
   const vsg = (initialRes.body.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]*)"/) || [])[1] || '';
@@ -139,12 +154,11 @@ async function syncPrices() {
   const searchVsg = (searchPageRes.body.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]*)"/) || [])[1] || '';
   const searchEv = (searchPageRes.body.match(/id="__EVENTVALIDATION"\s+value="([^"]*)"/) || [])[1] || '';
 
-  // 2. Consultar marcas para obtener precios frescos
   const keywords = ['Bullpadel', 'Nox', 'Head', 'Adidas', 'Siux', 'Wilson', 'Grip', 'Zapatilla', 'Mochila', 'Pelota'];
   const supplierPriceMap = new Map();
 
   for (const kw of keywords) {
-    console.log(`Obteniendo precios actualizados para "${kw}"...`);
+    console.log(`Obteniendo precios de miles para "${kw}"...`);
     const searchPostData = querystring.stringify({
       '__VIEWSTATE': searchVs,
       '__VIEWSTATEGENERATOR': searchVsg,
@@ -159,8 +173,8 @@ async function syncPrices() {
     parsedMap.forEach((v, k) => supplierPriceMap.set(k, v));
   }
 
-  console.log(`\n✓ Se extrajeron precios en vivo para ${supplierPriceMap.size / 2} ítems del portal.`);
-  console.log("3. Actualizando productos en Firebase...");
+  console.log(`\n✓ Extraídos precios completos en miles.`);
+  console.log("Actualizando Firebase...");
 
   const snapshot = await getDocs(collection(db, 'products'));
   let updatedCount = 0;
@@ -179,7 +193,7 @@ async function syncPrices() {
     }
   }
 
-  console.log(`\n🎉 ¡SINCRONIZACIÓN EXITOSA! Se actualizaron los precios con decimales exactos en ${updatedCount} productos.`);
+  console.log(`\n🎉 ¡SINCRONIZACIÓN EXITOSA! Se actualizaron ${updatedCount} productos con importes en miles.`);
   process.exit(0);
 }
 
