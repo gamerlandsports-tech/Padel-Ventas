@@ -1,9 +1,36 @@
 import { useState } from 'react';
 import { doc, setDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { uploadImage, deleteImageByUrl } from '../../services/storageService';
 import { CATEGORIES } from '../../utils/constants';
-import { ArrowLeft, Upload, X, Save } from 'lucide-react';
+import { ArrowLeft, Upload, X, Save, Link } from 'lucide-react';
+
+// Cloudinary config - subida directa sin backend (upload preset público)
+const CLOUDINARY_CLOUD_NAME = 'dpadelventa';
+const CLOUDINARY_UPLOAD_PRESET = 'padel_unsigned';
+
+async function uploadToCloudinary(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.ok) throw new Error('Cloudinary upload failed: ' + res.status);
+  const data = await res.json();
+  return data.secure_url;
+}
+
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => resolve(event.target.result);
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function ProductForm({ product, onClose }) {
   const isEditing = !!product;
@@ -30,7 +57,9 @@ export default function ProductForm({ product, onClose }) {
 
   const [images, setImages] = useState(product?.images || []);
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [saving, setSaving] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -50,45 +79,66 @@ export default function ProductForm({ product, onClose }) {
     if (files.length === 0) return;
 
     setUploading(true);
-    try {
-      const newImageUrls = [];
-      for (const file of files) {
-        // Intentar subir a Firebase Storage si está activo
-        try {
-          const url = await uploadImage(file);
-          if (url) {
-            newImageUrls.push(url);
-            continue;
-          }
-        } catch (storageErr) {
-          console.warn('Firebase Storage no activo, convirtiendo imagen localmente:', storageErr);
-        }
+    const newUrls = [];
 
-        // Fallback automático a Base64 Data URL (¡Funciona 100% sin importar Firebase Storage!)
-        const base64Url = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (event) => resolve(event.target.result);
-          reader.onerror = (err) => reject(err);
-          reader.readAsDataURL(file);
-        });
-        newImageUrls.push(base64Url);
+    for (const file of files) {
+      // Validar tamaño (máx 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`"${file.name}" pesa más de 5MB. Por favor comprimila antes de subir.`);
+        continue;
       }
-      setImages(prev => [...prev, ...newImageUrls]);
-    } catch (err) {
-      alert('Error procesando imágenes: ' + err.message);
-    } finally {
-      setUploading(false);
+
+      setUploadStatus(`Subiendo ${file.name}...`);
+      
+      // Siempre usar Base64 — funciona sin Firebase Storage ni servicios externos
+      try {
+        const base64 = await fileToBase64(file);
+        newUrls.push(base64);
+        setUploadStatus(`✓ ${file.name} cargada`);
+      } catch (err) {
+        alert(`Error procesando ${file.name}: ${err.message}`);
+      }
     }
+
+    setImages(prev => [...prev, ...newUrls]);
+    setUploading(false);
+    setUploadStatus('');
+    // Reset file input
+    e.target.value = '';
   };
 
-  const handleRemoveImage = async (url) => {
+  const handleAddUrl = async () => {
+    const url = urlInput.trim();
+    if (!url) return;
+
+    setUploading(true);
+    setUploadStatus('Verificando imagen...');
+
+    try {
+      // Intentar cargar la imagen para verificar que existe
+      await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('No se pudo cargar la imagen desde esa URL'));
+        img.src = url;
+        // Timeout de 5 segundos
+        setTimeout(() => reject(new Error('Tiempo de espera agotado')), 5000);
+      });
+
+      setImages(prev => [...prev, url]);
+      setUrlInput('');
+      setUploadStatus('✓ Imagen agregada por URL');
+    } catch (err) {
+      alert(`La URL no es válida o no se pudo acceder a la imagen.\n\nTip: Probá con el botón "Subir archivo" desde tu computadora o celular.`);
+    }
+
+    setUploading(false);
+    setUploadStatus('');
+  };
+
+  const handleRemoveImage = (idx) => {
     if (window.confirm('¿Eliminar esta imagen?')) {
-      try {
-        await deleteImageByUrl(url);
-        setImages(prev => prev.filter(img => img !== url));
-      } catch (err) {
-        alert('Error al borrar la imagen de la nube.');
-      }
+      setImages(prev => prev.filter((_, i) => i !== idx));
     }
   };
 
@@ -116,6 +166,7 @@ export default function ProductForm({ product, onClose }) {
       }
       onClose();
     } catch (err) {
+      console.error('Error guardando producto:', err);
       alert('Error guardando el producto: ' + err.message);
     } finally {
       setSaving(false);
@@ -148,7 +199,7 @@ export default function ProductForm({ product, onClose }) {
                 <div className="input-group">
                   <label>Categoría *</label>
                   <select required className="input" name="category" value={formData.category} onChange={handleChange}>
-                    {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label || c.name}</option>)}
                   </select>
                 </div>
               </div>
@@ -256,81 +307,91 @@ export default function ProductForm({ product, onClose }) {
             </label>
           </section>
 
+          {/* ─── Imágenes ─── */}
           <section className="glass p-lg" style={{ padding: 'var(--space-xl)', borderRadius: 'var(--radius-lg)' }}>
             <h3 style={{ marginBottom: 'var(--space-lg)' }}>Imágenes</h3>
-            
+
+            {/* Thumbnails */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
               {images.map((img, idx) => (
                 <div key={idx} style={{ position: 'relative', aspectRatio: '1', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-dim)' }}>
-                  <img src={img} alt="Product" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <button 
-                    type="button" 
-                    onClick={() => handleRemoveImage(img)}
-                    style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.7)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  <img src={img} alt={`Imagen ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(idx)}
+                    style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(220,38,38,0.85)', color: 'white', border: 'none', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                   >
-                    <X size={14} />
+                    <X size={12} />
                   </button>
                 </div>
               ))}
-              
-              <label style={{ aspectRatio: '1', borderRadius: 'var(--radius-md)', border: '2px dashed var(--border-dim)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
-                {uploading ? <div className="spinner"></div> : (
-                  <>
-                    <Upload size={24} style={{ marginBottom: '8px' }} />
-                    <span style={{ fontSize: 'var(--font-xs)' }}>Subir archivo</span>
-                  </>
-                )}
-                <input type="file" multiple accept="image/png, image/jpeg, image/jpg, image/webp, image/gif, image/svg+xml, image/avif" style={{ display: 'none' }} onChange={handleImageUpload} disabled={uploading} />
+
+              {/* Botón subir archivo */}
+              <label style={{
+                aspectRatio: '1', borderRadius: 'var(--radius-md)',
+                border: '2px dashed var(--accent-cyan)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                cursor: uploading ? 'not-allowed' : 'pointer',
+                background: 'var(--bg-tertiary)', color: 'var(--accent-cyan)',
+                transition: 'all 0.2s'
+              }}>
+                {uploading
+                  ? <div className="spinner" style={{ width: '24px', height: '24px' }} />
+                  : <>
+                      <Upload size={22} style={{ marginBottom: '6px' }} />
+                      <span style={{ fontSize: '10px', textAlign: 'center', lineHeight: '1.2' }}>Subir<br/>archivo</span>
+                    </>
+                }
+                <input
+                  type="file"
+                  multiple
+                  accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,image/avif"
+                  style={{ display: 'none' }}
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                />
               </label>
             </div>
-            
-            {/* Input para agregar por URL directa */}
-            <div className="input-group" style={{ marginTop: 'var(--space-md)' }}>
-              <label style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>O pegar URL de imagen directa:</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input 
-                  type="url" 
-                  className="input" 
-                  placeholder="https://ejemplo.com/imagen.jpg" 
-                  id="directImageUrlInput"
-                  style={{ fontSize: 'var(--font-xs)' }}
-                />
-                <button 
-                  type="button" 
-                  className="btn btn-secondary btn-sm"
-                  onClick={async () => {
-                    const input = document.getElementById('directImageUrlInput');
-                    if (input && input.value.trim()) {
-                      const url = input.value.trim();
-                      setUploading(true);
-                      try {
-                        // Intentar descargar y convertir a Base64 propia para que sea 100% independiente
-                        const res = await fetch(url);
-                        const blob = await res.blob();
-                        const base64Url = await new Promise((resolve, reject) => {
-                          const reader = new FileReader();
-                          reader.onloadend = () => resolve(reader.result);
-                          reader.onerror = reject;
-                          reader.readAsDataURL(blob);
-                        });
-                        setImages(prev => [...prev, base64Url]);
-                      } catch (err) {
-                        // Si la web externa bloquea peticiones (CORS), guardar la URL directa como fallback
-                        setImages(prev => [...prev, url]);
-                      } finally {
-                        setUploading(false);
-                        input.value = '';
-                      }
-                    }
-                  }}
-                >
-                  {uploading ? 'Cargando...' : 'Agregar'}
-                </button>
-              </div>
+
+            {/* Estado de la subida */}
+            {uploadStatus && (
+              <p style={{ fontSize: 'var(--font-xs)', color: 'var(--accent-cyan)', marginBottom: 'var(--space-sm)' }}>
+                {uploadStatus}
+              </p>
+            )}
+
+            {/* Separador */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 'var(--space-md) 0', color: 'var(--text-muted)', fontSize: 'var(--font-xs)' }}>
+              <hr style={{ flex: 1, borderColor: 'var(--border-dim)' }} />
+              O PEGAR LINK DE WEB
+              <hr style={{ flex: 1, borderColor: 'var(--border-dim)' }} />
             </div>
 
-            <p style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginTop: '8px' }}>
-              Formatos soportados: <strong>JPG, JPEG, PNG, WEBP, GIF, SVG, AVIF</strong>.
+            {/* Input URL */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="url"
+                className="input"
+                placeholder="https://sitio.com/foto.jpg"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddUrl())}
+                disabled={uploading}
+                style={{ fontSize: 'var(--font-xs)' }}
+              />
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleAddUrl}
+                disabled={uploading || !urlInput.trim()}
+                style={{ whiteSpace: 'nowrap', fontSize: 'var(--font-xs)' }}
+              >
+                <Link size={14} /> Agregar
+              </button>
+            </div>
+
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
+              Formatos: JPG, PNG, WEBP, GIF, AVIF • Máx. 5 MB por archivo.
             </p>
           </section>
 
