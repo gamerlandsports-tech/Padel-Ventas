@@ -12,24 +12,21 @@ import { USER_ROLES } from '../utils/constants';
 /**
  * Registrar nuevo usuario
  */
-export async function registerUser(email, password, displayName) {
+export async function registerUser(email, password, profileData) {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
-  // Update display name
-  await updateProfile(user, { displayName });
+  // Update display name (asumimos que profileData trae 'name' o 'displayName')
+  const fullName = profileData.name + (profileData.lastName ? ' ' + profileData.lastName : '');
+  await updateProfile(user, { displayName: fullName });
 
   // Create user document in Firestore
   await setDoc(doc(db, 'users', user.uid), {
     uid: user.uid,
     email: user.email,
-    displayName,
-    role: USER_ROLES.RETAIL,
-    phone: '',
-    address: '',
-    city: '',
-    province: '',
-    approved: true, // Retail users are auto-approved
+    displayName: fullName,
+    ...profileData, // Esparce todos los datos adicionales (role, dni, clubName, etc.)
+    approved: true, // Por defecto aprobamos a todos (incluso mayoristas, según lo acordado)
     createdAt: serverTimestamp(),
   });
 

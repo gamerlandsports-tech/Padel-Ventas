@@ -41,7 +41,7 @@ export default function Footer() {
         <div className="footer-col">
           <h4>Contacto</h4>
           <ul>
-            <li><a href="mailto:info@padelpro.com.ar">info@padelpro.com.ar</a></li>
+            <li><a href="mailto:gamerlandsports@gmail.com">gamerlandsports@gmail.com</a></li>
             <li><a href="https://wa.me/5491100000000" target="_blank" rel="noopener noreferrer">WhatsApp</a></li>
           </ul>
         </div>
