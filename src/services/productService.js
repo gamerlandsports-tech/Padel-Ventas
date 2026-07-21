@@ -25,19 +25,30 @@ export async function getProducts(filters = {}) {
     // Filtrar solo activos
     products = products.filter(p => p.active !== false);
 
+    // Helper para comparar arrays o valores individuales
+    const matchFilter = (itemValue, filterValue) => {
+      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) return true;
+      if (!itemValue) return false;
+      const itemStr = String(itemValue).toLowerCase();
+      if (Array.isArray(filterValue)) {
+        return filterValue.some(v => String(v).toLowerCase() === itemStr);
+      }
+      return String(filterValue).toLowerCase() === itemStr;
+    };
+
     // Filtro por categoría
     if (filters.category && filters.category !== 'todas') {
-      products = products.filter(p => p.category === filters.category);
+      products = products.filter(p => matchFilter(p.category, filters.category));
     }
 
     // Filtro por marca
     if (filters.brand) {
-      products = products.filter(p => p.brand === filters.brand);
+      products = products.filter(p => matchFilter(p.brand, filters.brand));
     }
 
     // Filtro por subcategoría
     if (filters.subcategory) {
-      products = products.filter(p => p.subcategory === filters.subcategory);
+      products = products.filter(p => matchFilter(p.subcategory, filters.subcategory));
     }
 
     // Filtro por oferta
