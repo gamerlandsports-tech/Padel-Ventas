@@ -22,8 +22,10 @@ export async function getProducts(filters = {}) {
     const snap = await getDocs(collection(db, PRODUCTS_COLLECTION));
     let products = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-    // Filtrar solo activos
-    products = products.filter(p => p.active !== false);
+    // Filtrar solo activos y con stock positivo (salvo que se solicite incluir sin stock en admin)
+    if (!filters.includeOutofStock) {
+      products = products.filter(p => p.active !== false && p.inStock !== false && (p.stockUnits == null || p.stockUnits > 0) && (p.priceWholesale > 0));
+    }
 
     // Helper para comparar arrays o valores individuales
     const matchFilter = (itemValue, filterValue) => {

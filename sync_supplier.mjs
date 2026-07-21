@@ -115,7 +115,7 @@ function parsePriceString(priceStr) {
 
 function extractSupplierPrices(html) {
   const priceMap = new Map();
-  const regex = /<span[^>]*id="MainContent_rptResults_lblArticulo_\d+"[^>]*>\s*([^<]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblDescription_\d+"[^>]*>\s*([^<]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblUnitPrice_\d+"[^>]*>\s*([\d\.,]+)<\/span>/gi;
+  const regex = /<span[^>]*id="MainContent_rptResults_lblArticulo_\d+"[^>]*>\s*([^<]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblDescription_\d+"[^>]*>\s*([^<]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblUnitPrice_\d+"[^>]*>\s*([\d\.,]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblInStock_\d+"[^>]*>\s*(\d+)<\/span>/gi;
 
   let match;
   while ((match = regex.exec(html)) !== null) {
@@ -123,16 +123,20 @@ function extractSupplierPrices(html) {
     const name = match[2].trim();
     const priceWholesale = parsePriceString(match[3]);
     const priceRetail = Math.round((priceWholesale * 1.25) * 100) / 100;
+    
+    const stockUnits = parseInt(match[4], 10) || 0;
+    const inStock = stockUnits > 0;
 
-    priceMap.set(sku, { priceWholesale, priceRetail });
-    priceMap.set(name, { priceWholesale, priceRetail });
+    const info = { priceWholesale, priceRetail, stockUnits, inStock };
+    priceMap.set(sku, info);
+    priceMap.set(name, info);
   }
 
   return priceMap;
 }
 
 async function syncPrices() {
-  console.log("=== SINCRONIZACIÓN DE PRECIOS CON MONTOS EN MILES CON EL PROVEEDOR ===");
+  console.log("=== SINCRONIZACIÓN DE PRECIOS Y STOCK REAL EN TIEMPO REAL ===");
   
   const initialRes = await makeRequest('/Login.aspx', 'GET');
   const vs = (initialRes.body.match(/id="__VIEWSTATE"\s+value="([^"]*)"/) || [])[1] || '';
@@ -158,7 +162,7 @@ async function syncPrices() {
   const supplierPriceMap = new Map();
 
   for (const kw of keywords) {
-    console.log(`Obteniendo precios de miles para "${kw}"...`);
+    console.log(`Obteniendo precios y stock para "${kw}"...`);
     const searchPostData = querystring.stringify({
       '__VIEWSTATE': searchVs,
       '__VIEWSTATEGENERATOR': searchVsg,
@@ -173,7 +177,7 @@ async function syncPrices() {
     parsedMap.forEach((v, k) => supplierPriceMap.set(k, v));
   }
 
-  console.log(`\n✓ Extraídos precios completos en miles.`);
+  console.log(`\n✓ Extraída información de precios y stock del portal.`);
   console.log("Actualizando Firebase...");
 
   const snapshot = await getDocs(collection(db, 'products'));
@@ -181,19 +185,21 @@ async function syncPrices() {
 
   for (const docSnap of snapshot.docs) {
     const data = docSnap.data();
-    const updatedPrice = supplierPriceMap.get(data.sku) || supplierPriceMap.get(data.name);
+    const info = supplierPriceMap.get(data.sku) || supplierPriceMap.get(data.name);
 
-    if (updatedPrice) {
+    if (info) {
       await updateDoc(doc(db, 'products', docSnap.id), {
-        priceWholesale: updatedPrice.priceWholesale,
-        priceRetail: updatedPrice.priceRetail,
+        priceWholesale: info.priceWholesale,
+        priceRetail: info.priceRetail,
+        stockUnits: info.stockUnits,
+        inStock: info.inStock,
         updatedAt: new Date()
       });
       updatedCount++;
     }
   }
 
-  console.log(`\n🎉 ¡SINCRONIZACIÓN EXITOSA! Se actualizaron ${updatedCount} productos con importes en miles.`);
+  console.log(`\n🎉 ¡SINCRONIZACIÓN DE STOCK Y PRECIOS EXITOSA! Se actualizaron ${updatedCount} productos.`);
   process.exit(0);
 }
 

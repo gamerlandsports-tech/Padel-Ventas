@@ -93,9 +93,6 @@ async function followRedirects(startUrl, method = 'GET', postData = null) {
   }
 }
 
-/**
- * Función robusta para transformar precios del portal ("464,035.00" -> 464035)
- */
 function parsePriceString(priceStr) {
   if (!priceStr) return 0;
   let cleaned = priceStr.trim();
@@ -104,10 +101,8 @@ function parsePriceString(priceStr) {
 
   if (lastComma > -1 && lastDot > -1) {
     if (lastDot > lastComma) {
-      // Formato EE.UU.: "464,035.00" -> coma es miles, punto es decimal
       cleaned = cleaned.replace(/,/g, '');
     } else {
-      // Formato ES: "464.035,00" -> punto es miles, coma es decimal
       cleaned = cleaned.replace(/\./g, '').replace(',', '.');
     }
   } else if (lastComma > -1) {
@@ -176,7 +171,8 @@ function classifyProduct(name, sku, defaultBrand = '') {
 
 function parseProductsFromHtml(html, defaultBrand = '') {
   const products = [];
-  const regex = /<span[^>]*id="MainContent_rptResults_lblArticulo_\d+"[^>]*>\s*([^<]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblDescription_\d+"[^>]*>\s*([^<]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblUnitPrice_\d+"[^>]*>\s*([\d\.,]+)<\/span>/gi;
+  // Regex capturando SKU, Nombre, Precio y Stock Real (lblInStock)
+  const regex = /<span[^>]*id="MainContent_rptResults_lblArticulo_\d+"[^>]*>\s*([^<]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblDescription_\d+"[^>]*>\s*([^<]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblUnitPrice_\d+"[^>]*>\s*([\d\.,]+)<\/span>[\s\S]*?<span[^>]*id="MainContent_rptResults_lblInStock_\d+"[^>]*>\s*(\d+)<\/span>/gi;
 
   let match;
   while ((match = regex.exec(html)) !== null) {
@@ -184,6 +180,10 @@ function parseProductsFromHtml(html, defaultBrand = '') {
     const name = match[2].trim();
     const priceWholesale = parsePriceString(match[3]);
     const priceRetail = Math.round((priceWholesale * 1.25) * 100) / 100;
+    
+    // Extracción de unidades en Stock real
+    const stockUnits = parseInt(match[4], 10) || 0;
+    const inStock = stockUnits > 0;
 
     const { category, subcategory, brand } = classifyProduct(name, sku, defaultBrand);
 
@@ -201,8 +201,9 @@ function parseProductsFromHtml(html, defaultBrand = '') {
       description: `Código oficial: ${sku}. Marca original: ${brand}. Excelente calidad y rendimiento garantizado.`,
       isOffer: false,
       active: true,
-      inStock: true,
-      featured: isPaleta,
+      inStock: inStock,
+      stockUnits: stockUnits,
+      featured: isPaleta && inStock,
       images: [
         `https://placehold.co/600x600/12121a/00f0ff?text=${encodeURIComponent(name)}`
       ],
@@ -223,7 +224,7 @@ function parseProductsFromHtml(html, defaultBrand = '') {
 }
 
 async function cleanAndReseed() {
-  console.log("=== 1. LIMPIANDO PRODUCTOS EN FIREBASE CON PRECIOS INCORRECTOS ===");
+  console.log("=== 1. LIMPIANDO PRODUCTOS EN FIREBASE ===");
   const snapshot = await getDocs(collection(db, 'products'));
   let deletedCount = 0;
   for (const docSnap of snapshot.docs) {
@@ -232,7 +233,7 @@ async function cleanAndReseed() {
   }
   console.log(`✓ Se eliminaron ${deletedCount} productos.`);
 
-  console.log("\n=== 2. INICIANDO IMPORTACIÓN CON PRECIOS COMPLETOS EN MILES ($464.035,00) ===");
+  console.log("\n=== 2. IMPORTANDO PRODUCTOS CON VERIFICACIÓN DE STOCK REAL (lblInStock > 0) ===");
   
   const initialRes = await makeRequest('/Login.aspx', 'GET');
   const vs = (initialRes.body.match(/id="__VIEWSTATE"\s+value="([^"]*)"/) || [])[1] || '';
@@ -244,11 +245,24 @@ async function cleanAndReseed() {
     '__VIEWSTATEGENERATOR': vsg,
     '__EVENTVALIDATION': ev,
     'ctl00$MainContent$LoginUser$UserName': 'diego.daverio',
-    'ctl00$MainContent$LoginUser$Password': 'Feli15578610',
-    'ctl00$MainContent$LoginUser$LoginButton': 'Ingresar'
+    'ctl00$MainContent$LoginUser$Password': 'FeliAguTito2026'
   });
 
-  const searchPageRes = await followRedirects('/Login.aspx', 'POST', loginData);
+  // Re-intentar con usuario/pass principal
+  const loginRes = await makeRequest('/Login.aspx', 'POST', loginData);
+  let searchPageRes;
+  if (loginRes.statusCode === 302) {
+    searchPageRes = await followRedirects(loginRes.headers.location || '/Default.aspx', 'GET');
+  } else {
+    searchPageRes = await followRedirects('/Login.aspx', 'POST', querystring.stringify({
+      '__VIEWSTATE': vs,
+      '__VIEWSTATEGENERATOR': vsg,
+      '__EVENTVALIDATION': ev,
+      'ctl00$MainContent$LoginUser$UserName': 'diego.daverio',
+      'ctl00$MainContent$LoginUser$Password': 'Feli15578610',
+      'ctl00$MainContent$LoginUser$LoginButton': 'Ingresar'
+    }));
+  }
 
   const searchVs = (searchPageRes.body.match(/id="__VIEWSTATE"\s+value="([^"]*)"/) || [])[1] || '';
   const searchVsg = (searchPageRes.body.match(/id="__VIEWSTATEGENERATOR"\s+value="([^"]*)"/) || [])[1] || '';
@@ -256,10 +270,11 @@ async function cleanAndReseed() {
 
   const keywords = ['Bullpadel', 'Nox', 'Head', 'Adidas', 'Siux', 'Wilson', 'Grip', 'Zapatilla', 'Mochila', 'Pelota'];
   let totalUploaded = 0;
+  let inStockCount = 0;
   const processedSkus = new Set();
 
   for (const kw of keywords) {
-    console.log(`\nProcesando búsqueda para "${kw}"...`);
+    console.log(`\nProcesando "${kw}"...`);
     const searchPostData = querystring.stringify({
       '__VIEWSTATE': searchVs,
       '__VIEWSTATEGENERATOR': searchVsg,
@@ -280,14 +295,18 @@ async function cleanAndReseed() {
       prod.createdAt = new Date();
       prod.updatedAt = new Date();
       await addDoc(collection(db, 'products'), prod);
-      console.log(`   + [${prod.category.toUpperCase()}] ${prod.name} -> Mayorista: $${prod.priceWholesale.toLocaleString('es-AR')} | Minorista: $${prod.priceRetail.toLocaleString('es-AR')}`);
+      
+      const stockBadge = prod.inStock ? `[STOCK: ${prod.stockUnits} un]` : '[SIN STOCK]';
+      console.log(`   + ${stockBadge} ${prod.name} -> $${prod.priceRetail.toLocaleString('es-AR')}`);
+      
+      if (prod.inStock) inStockCount++;
       kwCount++;
       totalUploaded++;
     }
-    console.log(`  ✓ ${kwCount} productos procesados con importes completos para "${kw}".`);
+    console.log(`  ✓ ${kwCount} productos procesados para "${kw}".`);
   }
 
-  console.log(`\n🎉 ¡REIMPORTACIÓN COMPLETADA! Se crearon ${totalUploaded} productos con sus montos reales de miles.`);
+  console.log(`\n🎉 ¡PROCESO COMPLETADO! Total: ${totalUploaded} productos (${inStockCount} DISPONIBLES CON STOCK > 0).`);
   process.exit(0);
 }
 
