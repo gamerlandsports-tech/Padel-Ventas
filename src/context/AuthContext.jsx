@@ -37,10 +37,10 @@ export function AuthProvider({ children }) {
   };
 
   const isAuthenticated = !!user;
-  const isAdmin = profile?.role === USER_ROLES.ADMIN;
+  const isAdmin = (user?.email?.toLowerCase() === 'gamerlandsports@gmail.com') || (profile?.role === USER_ROLES.ADMIN);
   const isWholesale = profile?.role === USER_ROLES.WHOLESALE;
   const isRetail = profile?.role === USER_ROLES.RETAIL;
-  const userRole = profile?.role || USER_ROLES.ANONYMOUS;
+  const userRole = isAdmin ? USER_ROLES.ADMIN : (profile?.role || USER_ROLES.ANONYMOUS);
 
   const value = {
     user,

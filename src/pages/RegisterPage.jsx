@@ -71,11 +71,13 @@ export default function RegisterPage() {
       await registerUser(email, password, profileData);
       navigate('/');
     } catch (err) {
-      console.error(err);
+      console.error('Registration error:', err);
       if (err.code === 'auth/email-already-in-use') {
         setError('El correo electrónico ya está registrado.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Debés habilitar el método "Correo electrónico/Contraseña" en tu Consola de Firebase (Authentication -> Método de acceso).');
       } else {
-        setError('Ocurrió un error al crear la cuenta. Intentá nuevamente.');
+        setError(`Error (${err.code || 'Auth Error'}): ${err.message || 'Ocurrió un problema al registrar la cuenta.'}`);
       }
     } finally {
       setLoading(false);

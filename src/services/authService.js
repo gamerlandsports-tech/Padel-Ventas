@@ -16,17 +16,21 @@ export async function registerUser(email, password, profileData) {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
-  // Update display name (asumimos que profileData trae 'name' o 'displayName')
-  const fullName = profileData.name + (profileData.lastName ? ' ' + profileData.lastName : '');
+  // Si el correo es gamerlandsports@gmail.com, forzamos el rol ADMIN
+  const isTargetAdmin = email.trim().toLowerCase() === 'gamerlandsports@gmail.com';
+  const assignedRole = isTargetAdmin ? USER_ROLES.ADMIN : (profileData.role || USER_ROLES.RETAIL);
+
+  const fullName = profileData.name ? (profileData.name + (profileData.lastName ? ' ' + profileData.lastName : '')) : 'Administrador';
   await updateProfile(user, { displayName: fullName });
 
   // Create user document in Firestore
   await setDoc(doc(db, 'users', user.uid), {
     uid: user.uid,
-    email: user.email,
+    email: user.email.toLowerCase(),
     displayName: fullName,
-    ...profileData, // Esparce todos los datos adicionales (role, dni, clubName, etc.)
-    approved: true, // Por defecto aprobamos a todos (incluso mayoristas, según lo acordado)
+    ...profileData,
+    role: assignedRole,
+    approved: true,
     createdAt: serverTimestamp(),
   });
 
