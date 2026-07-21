@@ -110,9 +110,9 @@ export default function HomePage() {
           </div>
         </section>
         <div className="scroll-row" style={{ paddingBottom: 'var(--space-2xl)' }}>
-          {BRANDS.slice(0, 8).map((brand, i) => (
-            <div key={brand} className="glass" style={{ padding: 'var(--space-lg) var(--space-2xl)', borderRadius: 'var(--radius-md)', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)', fontWeight: '700', letterSpacing: '2px', color: 'var(--text-secondary)' }}>
-              {brand}
+          {BRANDS.slice(0, 8).map((brand) => (
+            <div key={brand.label} className="glass" style={{ padding: 'var(--space-lg) var(--space-2xl)', borderRadius: 'var(--radius-md)', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)', fontWeight: '700', letterSpacing: '2px', color: 'var(--text-secondary)' }}>
+              {brand.label}
             </div>
           ))}
         </div>
