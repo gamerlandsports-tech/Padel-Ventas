@@ -12,12 +12,12 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'DEMO_API_KEY',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'demo.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'demo-project',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'demo.appspot.com',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '000000000',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:000:web:000',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAwWA60gGszPQQ6KDJ0dDd5gWnUEygTB14",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "padel-ventas.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "padel-ventas",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "padel-ventas.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "957509698700",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:957509698700:web:dfc30e7ac62e13491aa7a9",
 };
 
 // Initialize Firebase
