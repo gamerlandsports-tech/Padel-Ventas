@@ -260,13 +260,43 @@ export default function ProductForm({ product, onClose }) {
                 {uploading ? <div className="spinner"></div> : (
                   <>
                     <Upload size={24} style={{ marginBottom: '8px' }} />
-                    <span style={{ fontSize: 'var(--font-xs)' }}>Subir</span>
+                    <span style={{ fontSize: 'var(--font-xs)' }}>Subir archivo</span>
                   </>
                 )}
-                <input type="file" multiple accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} disabled={uploading} />
+                <input type="file" multiple accept="image/png, image/jpeg, image/jpg, image/webp, image/gif, image/svg+xml, image/avif" style={{ display: 'none' }} onChange={handleImageUpload} disabled={uploading} />
               </label>
             </div>
-            <p style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>Podés seleccionar varias imágenes a la vez.</p>
+            
+            {/* Input para agregar por URL directa */}
+            <div className="input-group" style={{ marginTop: 'var(--space-md)' }}>
+              <label style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)' }}>O pegar URL de imagen directa:</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="url" 
+                  className="input" 
+                  placeholder="https://ejemplo.com/imagen.jpg" 
+                  id="directImageUrlInput"
+                  style={{ fontSize: 'var(--font-xs)' }}
+                />
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const input = document.getElementById('directImageUrlInput');
+                    if (input && input.value.trim()) {
+                      setImages(prev => [...prev, input.value.trim()]);
+                      input.value = '';
+                    }
+                  }}
+                >
+                  Agregar
+                </button>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 'var(--font-xs)', color: 'var(--text-secondary)', marginTop: '8px' }}>
+              Formatos soportados: <strong>JPG, JPEG, PNG, WEBP, GIF, SVG, AVIF</strong>.
+            </p>
           </section>
 
           <button type="submit" className="btn btn-primary btn-lg" disabled={saving} style={{ width: '100%', marginTop: 'auto' }}>
