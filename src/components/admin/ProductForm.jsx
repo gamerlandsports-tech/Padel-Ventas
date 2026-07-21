@@ -20,6 +20,7 @@ export default function ProductForm({ product, onClose }) {
     offerPriceRetail: product?.offerPriceRetail || '',
     offerPriceWholesale: product?.offerPriceWholesale || '',
     active: product?.active ?? true,
+    inStock: product?.inStock ?? true,
     featured: product?.featured || false,
   });
 
@@ -226,7 +227,11 @@ export default function ProductForm({ product, onClose }) {
             
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-sm)', cursor: 'pointer' }}>
               <input type="checkbox" name="active" checked={formData.active} onChange={handleChange} />
-              Producto Activo (Visible en tienda)
+              Producto Activo (Visible en catálogo)
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-sm)', cursor: 'pointer' }}>
+              <input type="checkbox" name="inStock" checked={formData.inStock} onChange={handleChange} />
+              Hay Stock disponible
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <input type="checkbox" name="featured" checked={formData.featured} onChange={handleChange} />

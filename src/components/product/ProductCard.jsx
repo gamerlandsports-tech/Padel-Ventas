@@ -53,6 +53,13 @@ export default function ProductCard({ product, index = 0 }) {
         loading="lazy"
       />
 
+      {/* Out of Stock Badge */}
+      {product.inStock === false && (
+        <div className="product-card-badge" style={{ top: product.isOffer ? (showWholesale ? '84px' : '48px') : '12px' }}>
+          <span className="badge" style={{ background: 'var(--accent-magenta)', color: 'white' }}>❌ Sin Stock</span>
+        </div>
+      )}
+
       {/* Overlay */}
       <div className="product-card-overlay">
         <span className="product-card-brand">{product.brand}</span>
@@ -66,9 +73,14 @@ export default function ProductCard({ product, index = 0 }) {
         </div>
 
         {isAuthenticated ? (
-          <button className="product-card-btn" onClick={handleAddToCart}>
+          <button 
+            className="product-card-btn" 
+            onClick={handleAddToCart}
+            disabled={product.inStock === false}
+            style={{ opacity: product.inStock === false ? 0.5 : 1, cursor: product.inStock === false ? 'not-allowed' : 'pointer' }}
+          >
             <ShoppingCart size={14} />
-            Agregar
+            {product.inStock === false ? 'Sin Stock' : 'Agregar'}
           </button>
         ) : (
           <div className="product-card-btn" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-dim)', color: 'var(--text-secondary)' }}>

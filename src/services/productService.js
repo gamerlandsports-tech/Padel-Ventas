@@ -8,8 +8,6 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy,
-  limit,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -17,34 +15,56 @@ import { db } from './firebase';
 const PRODUCTS_COLLECTION = 'products';
 
 /**
- * Obtener todos los productos (con filtros opcionales)
+ * Obtener todos los productos (con filtros y ordenamiento en memoria sin errores de índices en Firestore)
  */
 export async function getProducts(filters = {}) {
-  let q = collection(db, PRODUCTS_COLLECTION);
-  const constraints = [where('active', '==', true)];
+  try {
+    const snap = await getDocs(collection(db, PRODUCTS_COLLECTION));
+    let products = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-  if (filters.category) {
-    constraints.push(where('category', '==', filters.category));
-  }
-  if (filters.brand) {
-    constraints.push(where('brand', '==', filters.brand));
-  }
-  if (filters.subcategory) {
-    constraints.push(where('subcategory', '==', filters.subcategory));
-  }
-  if (filters.isOffer) {
-    constraints.push(where('isOffer', '==', true));
-  }
+    // Filtrar solo activos
+    products = products.filter(p => p.active !== false);
 
-  constraints.push(orderBy('createdAt', 'desc'));
+    // Filtro por categoría
+    if (filters.category && filters.category !== 'todas') {
+      products = products.filter(p => p.category === filters.category);
+    }
 
-  if (filters.limit) {
-    constraints.push(limit(filters.limit));
+    // Filtro por marca
+    if (filters.brand) {
+      products = products.filter(p => p.brand === filters.brand);
+    }
+
+    // Filtro por subcategoría
+    if (filters.subcategory) {
+      products = products.filter(p => p.subcategory === filters.subcategory);
+    }
+
+    // Filtro por oferta
+    if (filters.isOffer) {
+      products = products.filter(p => p.isOffer === true);
+    }
+
+    // Ordenamiento en memoria
+    if (filters.sort === 'alpha-asc') {
+      products.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (filters.sort === 'alpha-desc') {
+      products.sort((a, b) => b.name.localeCompare(a.name));
+    } else if (filters.sort === 'price-asc') {
+      products.sort((a, b) => (a.priceRetail || 0) - (b.priceRetail || 0));
+    } else if (filters.sort === 'price-desc') {
+      products.sort((a, b) => (b.priceRetail || 0) - (a.priceRetail || 0));
+    }
+
+    if (filters.limit) {
+      products = products.slice(0, filters.limit);
+    }
+
+    return products;
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    return [];
   }
-
-  q = query(q, ...constraints);
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
 /**
@@ -60,33 +80,29 @@ export async function getProductById(productId) {
 }
 
 /**
- * Obtener productos en oferta
+ * Obtener productos en oferta (con fallback a lista general si no hay ofertas etiquetadas)
  */
 export async function getOfferProducts(maxItems = 12) {
-  const q = query(
-    collection(db, PRODUCTS_COLLECTION),
-    where('active', '==', true),
-    where('isOffer', '==', true),
-    orderBy('createdAt', 'desc'),
-    limit(maxItems)
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const allProducts = await getProducts();
+  const offers = allProducts.filter(p => p.isOffer === true);
+  if (offers.length > 0) {
+    return offers.slice(0, maxItems);
+  }
+  // Fallback: Devolver los primeros N productos
+  return allProducts.slice(0, maxItems);
 }
 
 /**
- * Obtener productos destacados
+ * Obtener productos destacados / novedades (con fallback)
  */
 export async function getFeaturedProducts(maxItems = 8) {
-  const q = query(
-    collection(db, PRODUCTS_COLLECTION),
-    where('active', '==', true),
-    where('featured', '==', true),
-    orderBy('createdAt', 'desc'),
-    limit(maxItems)
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const allProducts = await getProducts();
+  const featured = allProducts.filter(p => p.featured === true);
+  if (featured.length > 0) {
+    return featured.slice(0, maxItems);
+  }
+  // Fallback
+  return allProducts.slice(0, maxItems);
 }
 
 /**
@@ -96,6 +112,7 @@ export async function createProduct(productData) {
   const docRef = await addDoc(collection(db, PRODUCTS_COLLECTION), {
     ...productData,
     active: true,
+    inStock: productData.inStock ?? true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -125,27 +142,13 @@ export async function deleteProduct(productId) {
 }
 
 /**
- * Obtener marcas únicas (para filtros dinámicos)
+ * Obtener marcas únicas
  */
 export async function getBrands(category = null) {
-  let q;
-  if (category) {
-    q = query(
-      collection(db, PRODUCTS_COLLECTION),
-      where('active', '==', true),
-      where('category', '==', category)
-    );
-  } else {
-    q = query(
-      collection(db, PRODUCTS_COLLECTION),
-      where('active', '==', true)
-    );
-  }
-  const snapshot = await getDocs(q);
+  const products = await getProducts({ category });
   const brands = new Set();
-  snapshot.docs.forEach((doc) => {
-    const data = doc.data();
-    if (data.brand) brands.add(data.brand);
+  products.forEach((p) => {
+    if (p.brand) brands.add(p.brand);
   });
   return Array.from(brands).sort();
 }
