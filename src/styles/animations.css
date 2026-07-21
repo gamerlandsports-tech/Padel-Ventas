@@ -1,0 +1,251 @@
+/* ═══════════════════════════════════════════════════════════
+   PADEL VENTAS — Animaciones Techno
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── Glow Pulse ─── */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--accent-cyan-dim);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--accent-cyan-glow), 0 0 40px var(--accent-cyan-dim);
+  }
+}
+
+/* ─── Slide Up ─── */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Slide In Right ─── */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ─── Slide In Left ─── */
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ─── Fade In ─── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── Scale In ─── */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ─── Shimmer (Loading Skeleton) ─── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ─── Gradient Shift (Hero) ─── */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ─── Float ─── */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* ─── Neon Border ─── */
+@keyframes neon-border {
+  0%, 100% {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 5px var(--accent-cyan-dim);
+  }
+  50% {
+    border-color: var(--accent-magenta);
+    box-shadow: 0 0 5px var(--accent-magenta-dim);
+  }
+}
+
+/* ─── Rotate Glow ─── */
+@keyframes rotate-glow {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+/* ─── Spin ─── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Animation Utility Classes ─── */
+.animate-slide-up {
+  animation: slide-up 0.5s ease forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease forwards;
+}
+
+.animate-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-neon {
+  animation: neon-border 3s ease-in-out infinite;
+}
+
+/* ─── Staggered animations ─── */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.4s; }
+
+/* ─── Skeleton Loading ─── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    rgba(136, 136, 170, 0.1) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+  width: 80%;
+}
+
+.skeleton-title {
+  height: 22px;
+  margin-bottom: 12px;
+  width: 60%;
+}
+
+.skeleton-image {
+  width: 100%;
+  aspect-ratio: 3/4;
+}
+
+/* ─── Transition Classes ─── */
+.transition-all {
+  transition: all var(--transition-normal);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+.hover-glow-cyan:hover {
+  box-shadow: var(--shadow-glow-cyan);
+}
+
+.hover-glow-magenta:hover {
+  box-shadow: var(--shadow-glow-magenta);
+}
+
+.hover-scale:hover {
+  transform: scale(1.03);
+}
+
+/* ─── Page Transitions ─── */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.3s ease;
+}
+
+/* ─── Toast / Notification ─── */
+.toast-enter {
+  animation: slide-in-right 0.3s ease forwards;
+}
+
+.toast-exit {
+  animation: slide-in-right 0.3s ease reverse forwards;
+}
+
+/* ─── Spinner ─── */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-dim);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner-lg {
+  width: 48px;
+  height: 48px;
+  border-width: 3px;
+}
