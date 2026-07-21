@@ -298,15 +298,33 @@ export default function ProductForm({ product, onClose }) {
                 <button 
                   type="button" 
                   className="btn btn-secondary btn-sm"
-                  onClick={() => {
+                  onClick={async () => {
                     const input = document.getElementById('directImageUrlInput');
                     if (input && input.value.trim()) {
-                      setImages(prev => [...prev, input.value.trim()]);
-                      input.value = '';
+                      const url = input.value.trim();
+                      setUploading(true);
+                      try {
+                        // Intentar descargar y convertir a Base64 propia para que sea 100% independiente
+                        const res = await fetch(url);
+                        const blob = await res.blob();
+                        const base64Url = await new Promise((resolve, reject) => {
+                          const reader = new FileReader();
+                          reader.onloadend = () => resolve(reader.result);
+                          reader.onerror = reject;
+                          reader.readAsDataURL(blob);
+                        });
+                        setImages(prev => [...prev, base64Url]);
+                      } catch (err) {
+                        // Si la web externa bloquea peticiones (CORS), guardar la URL directa como fallback
+                        setImages(prev => [...prev, url]);
+                      } finally {
+                        setUploading(false);
+                        input.value = '';
+                      }
                     }
                   }}
                 >
-                  Agregar
+                  {uploading ? 'Cargando...' : 'Agregar'}
                 </button>
               </div>
             </div>
