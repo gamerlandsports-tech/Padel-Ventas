@@ -50,35 +50,36 @@ export default function CatalogPage() {
     setFilters({});
   };
 
-  // Local filtering for array values (since Firestore array-contains-any has limits)
+  // Local filtering for array values (brand, subcategory, specs)
   const filteredProducts = products.filter(p => {
-    let match = true;
-    
-    // Check array filters (Brand, Formato, Placa, etc)
-    Object.entries(filters).forEach(([key, values]) => {
-      // Skip range filters or empty arrays
-      if (!values || (Array.isArray(values) && values.length === 0) || key === 'pesoMin' || key === 'pesoMax') return;
-      
-      if (key === 'brand' || key === 'subcategory') {
-        if (!values.includes(p[key])) match = false;
-      } else if (p.specs && p.specs[key]) {
-        // Specs filters (paletas)
-        if (!values.includes(p.specs[key])) match = false;
+    // Check array filters (Brand, Subcategory, Formato, Placa, etc)
+    for (const [key, values] of Object.entries(filters)) {
+      if (!values || (Array.isArray(values) && values.length === 0) || key === 'pesoMin' || key === 'pesoMax') continue;
+
+      const valArray = Array.isArray(values) ? values : [values];
+
+      if (key === 'brand') {
+        if (!p.brand || !valArray.some(v => v.toLowerCase() === p.brand.toLowerCase())) return false;
+      } else if (key === 'subcategory') {
+        if (!p.subcategory || !valArray.some(v => v.toLowerCase() === p.subcategory.toLowerCase())) return false;
+      } else if (key === 'category') {
+        if (!p.category || !valArray.some(v => v.toLowerCase() === p.category.toLowerCase())) return false;
       } else {
-        // If product doesn't have the spec but filter is active
-        match = false;
+        // Specs filters (paletas)
+        const specVal = p.specs ? p.specs[key] : null;
+        if (!specVal || !valArray.some(v => v.toLowerCase() === String(specVal).toLowerCase())) return false;
       }
-    });
+    }
 
     // Check Range filters (Peso)
     if (filters.pesoMin && p.specs?.peso_min) {
-      if (p.specs.peso_max < parseInt(filters.pesoMin)) match = false;
+      if (p.specs.peso_max < parseInt(filters.pesoMin)) return false;
     }
     if (filters.pesoMax && p.specs?.peso_max) {
-      if (p.specs.peso_min > parseInt(filters.pesoMax)) match = false;
+      if (p.specs.peso_min > parseInt(filters.pesoMax)) return false;
     }
 
-    return match;
+    return true;
   });
 
   return (
