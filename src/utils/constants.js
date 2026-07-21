@@ -49,7 +49,7 @@ export const BRANDS = [
   { label: 'Magnus',      aliases: ['Magnus'] },
   { label: 'Nox',         aliases: ['Nox'] },
   { label: 'Odea',        aliases: ['Odea', 'Odear'] },
-  { label: 'OD PRO',      aliases: ['OD PRO', 'Od Pro', 'Odpro', 'ODPRO'] },
+  { label: 'OD PRO',      aliases: ['OD PRO'] },
   { label: 'Royal',       aliases: ['Royal'] },
   { label: 'Sane',        aliases: ['Sane'] },
   { label: 'Saro',        aliases: ['Saro'] },

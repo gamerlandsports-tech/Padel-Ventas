@@ -27,15 +27,17 @@ export async function getProducts(filters = {}) {
       products = products.filter(p => p.active !== false && p.inStock !== false && (p.stockUnits == null || p.stockUnits > 0) && (p.priceWholesale > 0));
     }
 
-    // Helper para comparar arrays o valores individuales
+    // Helper para comparar: normaliza a minúsculas SIN espacios
+    // Así "OD PRO" === "ODPRO" === "Od Pro" === "odpro"
+    const normalize = (s) => String(s).toLowerCase().replace(/\s+/g, '');
     const matchFilter = (itemValue, filterValue) => {
       if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) return true;
       if (!itemValue) return false;
-      const itemStr = String(itemValue).toLowerCase();
+      const itemNorm = normalize(itemValue);
       if (Array.isArray(filterValue)) {
-        return filterValue.some(v => String(v).toLowerCase() === itemStr);
+        return filterValue.some(v => normalize(v) === itemNorm);
       }
-      return String(filterValue).toLowerCase() === itemStr;
+      return normalize(filterValue) === itemNorm;
     };
 
     // Filtro por categoría
