@@ -32,8 +32,8 @@ async function removeWhiteBackground(file, tolerance = 30) {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
-      // Limitar a 1200px para no exceder Firestore
-      const MAX = 1200;
+      // Limitar a 600px para no exceder Firestore en caso de fallback Base64
+      const MAX = 600;
       const scale = Math.min(1, MAX / Math.max(img.width, img.height));
       const w = Math.round(img.width * scale);
       const h = Math.round(img.height * scale);
@@ -153,9 +153,18 @@ export default function ProductForm({ product, onClose }) {
 
       setUploadStatus(`Quitando fondo de ${file.name}...`);
       try {
-        const pngUrl = await removeWhiteBackground(file);
-        newUrls.push(pngUrl);
-        setUploadStatus(`✓ ${file.name} lista (fondo eliminado)`);
+        const pngBase64 = await removeWhiteBackground(file);
+        
+        setUploadStatus(`Subiendo ${file.name} a la nube...`);
+        try {
+          const cloudinaryUrl = await uploadToCloudinary(pngBase64);
+          newUrls.push(cloudinaryUrl);
+          setUploadStatus(`✓ ${file.name} subida (nube)`);
+        } catch (cloudinaryErr) {
+          console.warn("Fallo subida a Cloudinary, usando base64 optimizado:", cloudinaryErr);
+          newUrls.push(pngBase64);
+          setUploadStatus(`✓ ${file.name} optimizada (local)`);
+        }
       } catch (err) {
         alert(`Error procesando ${file.name}: ${err.message}`);
       }
