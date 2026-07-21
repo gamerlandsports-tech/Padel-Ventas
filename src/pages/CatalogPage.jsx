@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/product/ProductCard';
+import ProductCardGrouped from '../components/product/ProductCardGrouped';
 import FilterPanel from '../components/filters/FilterPanel';
 import { getProducts } from '../services/productService';
 import { CATEGORIES } from '../utils/constants';
+import { groupProducts } from '../utils/productGrouping';
 
 export default function CatalogPage() {
   const { categoryId } = useParams();
@@ -82,6 +84,11 @@ export default function CatalogPage() {
     return true;
   });
 
+  // Agrupar productos si la categoría lo requiere (zapatillas / indumentaria)
+  const groupedProducts = useMemo(() => {
+    return groupProducts(filteredProducts, categoryId);
+  }, [filteredProducts, categoryId]);
+
   return (
     <div className="container animate-fade-in" style={{ paddingBottom: 'var(--space-3xl)' }}>
       <div className="catalog-layout">
@@ -99,7 +106,9 @@ export default function CatalogPage() {
         <main>
           <div className="catalog-header">
             <h1 className="section-title" style={{ fontSize: 'var(--font-2xl)', margin: 0 }}>{categoryName}</h1>
-            <span className="catalog-count">{filteredProducts.length} productos</span>
+            <span className="catalog-count">
+              {groupedProducts.length} {(categoryId === 'zapatillas' || categoryId === 'indumentaria') ? 'modelos' : 'productos'}
+            </span>
           </div>
 
           {loading ? (
@@ -119,9 +128,13 @@ export default function CatalogPage() {
             </div>
           ) : (
             <div className="grid-stories">
-              {filteredProducts.map((p, i) => (
-                <ProductCard key={p.id} product={p} index={i} />
-              ))}
+              {groupedProducts.map((item, i) =>
+                item.isGroup ? (
+                  <ProductCardGrouped key={item.id} group={item} index={i} />
+                ) : (
+                  <ProductCard key={item.id} product={item} index={i} />
+                )
+              )}
             </div>
           )}
         </main>
