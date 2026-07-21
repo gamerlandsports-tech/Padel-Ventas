@@ -195,14 +195,27 @@
   transform: translateY(-6px) scale(1.02);
 }
 
+/* Contenedor de imagen: fondo blanco puro para que mix-blend-mode:multiply funcione */
+.product-card-image-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  overflow: hidden;
+}
+
 .product-card-image {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 12px;
   transition: transform var(--transition-slow);
+  mix-blend-mode: multiply;
 }
 
 .product-card:hover .product-card-image {
