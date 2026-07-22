@@ -82,10 +82,16 @@ async function removeWhiteBackground(file, tolerance = 30) {
       }
 
       ctx.putImageData(imgData, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
+
+      // Exportar en WebP comprimido al 65% (conserva transparencia y reduce el peso un 95%)
+      let webpUrl = canvas.toDataURL('image/webp', 0.65);
+      if (!webpUrl.startsWith('data:image/webp')) {
+        webpUrl = canvas.toDataURL('image/png');
+      }
+      resolve(webpUrl);
     };
     img.onerror = () => {
-      // Si falla, usar base64 normal
+      // Si falla, usar base64 normal comprimido
       const reader = new FileReader();
       reader.onload = (e) => resolve(e.target.result);
       reader.readAsDataURL(file);
