@@ -1,0 +1,12 @@
+{
+  "createdAt": "2026-07-22T21:13:37.092Z",
+  "project": "Padel Ventas",
+  "totalProducts": 2076,
+  "totalUsers": 1,
+  "status": "COMPLETE_SUCCESS",
+  "files": [
+    "backup_padel_ventas_2026-07-22.json",
+    "backups/backup_2026-07-22/products_db.json",
+    "backups/backup_2026-07-22/users_db.json"
+  ]
+}

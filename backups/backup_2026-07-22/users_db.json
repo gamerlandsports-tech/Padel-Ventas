@@ -1,0 +1,28 @@
+[
+  {
+    "_id": "Bv8XpMm1j8ejwzt3oTng66Bx9ki1",
+    "role": "admin",
+    "zipCode": "3150",
+    "name": "DAVERIO",
+    "displayName": "DAVERIO DIEGO",
+    "approved": true,
+    "clubAddress": "La PAZ 864",
+    "city": "Nogoya",
+    "createdAt": {
+      "type": "firestore/timestamp/1.0",
+      "seconds": 1784651942,
+      "nanoseconds": 10000000
+    },
+    "email": "gamerlandsports@gmail.com",
+    "lastName": "DIEGO",
+    "uid": "Bv8XpMm1j8ejwzt3oTng66Bx9ki1",
+    "clubName": "GAMERLAND SPORTS",
+    "transportMethods": "CORREO ARGENTINO, VIA CARGO, INTEGRAL",
+    "address": "La PAZ 864",
+    "dni": "25694275",
+    "phone": "3435534961",
+    "storeAddress": "La PAZ 864",
+    "province": "Entre Ríos",
+    "websiteLink": "https://www.facebook.com/gamerland.sports.arg"
+  }
+]
