@@ -222,13 +222,19 @@ export default function ProductForm({ product, onClose }) {
     e.preventDefault();
     setSaving(true);
 
+    const retail = Number(formData.priceRetail) || 0;
+    const wholesale = Number(formData.priceWholesale) || retail;
+
     const payload = {
       ...formData,
-      priceRetail: Number(formData.priceRetail),
-      priceWholesale: Number(formData.priceWholesale),
+      priceRetail: retail,
+      priceWholesale: wholesale,
       offerPriceRetail: formData.offerPriceRetail ? Number(formData.offerPriceRetail) : null,
       offerPriceWholesale: formData.offerPriceWholesale ? Number(formData.offerPriceWholesale) : null,
-      images,
+      images: Array.isArray(images) && images.length > 0 ? images : [],
+      inStock: formData.inStock ?? true,
+      stockUnits: formData.inStock !== false ? (formData.stockUnits ? Number(formData.stockUnits) : 10) : 0,
+      active: formData.active ?? true,
       specs: formData.category === 'paletas' ? specs : {},
       updatedAt: new Date()
     };

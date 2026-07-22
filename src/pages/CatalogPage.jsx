@@ -54,6 +54,8 @@ export default function CatalogPage() {
 
   // Local filtering for array values (brand, subcategory, specs)
   const filteredProducts = products.filter(p => {
+    const normalize = (s) => String(s || '').toLowerCase().replace(/[\s'-]+/g, '');
+
     // Check array filters (Brand, Subcategory, Formato, Placa, etc)
     for (const [key, values] of Object.entries(filters)) {
       if (!values || (Array.isArray(values) && values.length === 0) || key === 'pesoMin' || key === 'pesoMax') continue;
@@ -61,15 +63,18 @@ export default function CatalogPage() {
       const valArray = Array.isArray(values) ? values : [values];
 
       if (key === 'brand') {
-        if (!p.brand || !valArray.some(v => v.toLowerCase() === p.brand.toLowerCase())) return false;
+        const normBrand = normalize(p.brand);
+        if (!p.brand || !valArray.some(v => normalize(v) === normBrand)) return false;
       } else if (key === 'subcategory') {
-        if (!p.subcategory || !valArray.some(v => v.toLowerCase() === p.subcategory.toLowerCase())) return false;
+        const normSub = normalize(p.subcategory);
+        if (!p.subcategory || !valArray.some(v => normalize(v) === normSub)) return false;
       } else if (key === 'category') {
-        if (!p.category || !valArray.some(v => v.toLowerCase() === p.category.toLowerCase())) return false;
+        const normCat = normalize(p.category);
+        if (!p.category || !valArray.some(v => normalize(v) === normCat)) return false;
       } else {
         // Specs filters (paletas)
         const specVal = p.specs ? p.specs[key] : null;
-        if (!specVal || !valArray.some(v => v.toLowerCase() === String(specVal).toLowerCase())) return false;
+        if (!specVal || !valArray.some(v => normalize(v) === normalize(specVal))) return false;
       }
     }
 

@@ -24,12 +24,12 @@ export async function getProducts(filters = {}) {
 
     // Filtrar solo activos y con stock positivo (salvo que se solicite incluir sin stock en admin)
     if (!filters.includeOutofStock) {
-      products = products.filter(p => p.active !== false && p.inStock !== false && (p.stockUnits == null || p.stockUnits > 0) && (p.priceWholesale > 0));
+      products = products.filter(p => p.active !== false && p.inStock !== false && (p.stockUnits == null || p.stockUnits > 0) && (p.priceWholesale > 0 || p.priceRetail > 0));
     }
 
-    // Helper para comparar: normaliza a minúsculas SIN espacios
-    // Así "OD PRO" === "ODPRO" === "Od Pro" === "odpro"
-    const normalize = (s) => String(s).toLowerCase().replace(/\s+/g, '');
+    // Helper para comparar: normaliza a minúsculas SIN espacios ni guiones ni apóstrofes
+    // Así "OD PRO" === "ODPRO" === "Od Pro" === "J'Hayber" === "JHayber"
+    const normalize = (s) => String(s || '').toLowerCase().replace(/[\s'-]+/g, '');
     const matchFilter = (itemValue, filterValue) => {
       if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) return true;
       if (!itemValue) return false;
