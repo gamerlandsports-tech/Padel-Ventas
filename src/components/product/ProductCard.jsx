@@ -31,63 +31,67 @@ export default function ProductCard({ product, index = 0 }) {
       className="product-card"
       style={{ animationDelay: `${index * 0.05}s` }}
     >
-      {/* Offer Badge */}
-      {product.isOffer && (
-        <div className="product-card-badge">
-          <span className="badge badge-magenta">🔥 Oferta</span>
-        </div>
-      )}
-
-      {/* Wholesale badge */}
-      {showWholesale && (
-        <div className="product-card-badge" style={{ top: product.isOffer ? '48px' : '12px' }}>
-          <span className="badge badge-cyan">Mayorista</span>
-        </div>
-      )}
-
-      {/* Image */}
-      <img
-        className="product-card-image"
-        src={imageUrl}
-        alt={product.name}
-        loading="lazy"
-      />
-
-      {/* Out of Stock Badge */}
-      {product.inStock === false && (
-        <div className="product-card-badge" style={{ top: product.isOffer ? (showWholesale ? '84px' : '48px') : '12px' }}>
-          <span className="badge" style={{ background: 'var(--accent-magenta)', color: 'white' }}>❌ Sin Stock</span>
-        </div>
-      )}
-
-      {/* Overlay */}
-      <div className="product-card-overlay">
-        <span className="product-card-brand">{product.brand}</span>
-        <h3 className="product-card-name">{product.name}</h3>
-
-        <div className="product-card-price-row">
-          <span className="price">{formatPrice(currentPrice)}</span>
-          {product.isOffer && currentPrice !== originalPrice && (
-            <span className="price-old">{formatPrice(originalPrice)}</span>
-          )}
-        </div>
-
-        {isAuthenticated ? (
-          <button 
-            className="product-card-btn" 
-            onClick={handleAddToCart}
-            disabled={product.inStock === false}
-            style={{ opacity: product.inStock === false ? 0.5 : 1, cursor: product.inStock === false ? 'not-allowed' : 'pointer' }}
-          >
-            <ShoppingCart size={14} />
-            {product.inStock === false ? 'Sin Stock' : 'Agregar'}
-          </button>
-        ) : (
-          <div className="product-card-btn" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-dim)', color: 'var(--text-secondary)' }}>
-            <Eye size={14} />
-            Ver detalle
+      {/* 📸 Imagen limpia arriba (100% visible sin texto encima) */}
+      <div className="product-card-image-box">
+        {/* Badges de estado sobre la imagen */}
+        {product.isOffer && (
+          <div className="product-card-badge" style={{ top: '8px', left: '8px' }}>
+            <span className="badge badge-magenta">🔥 Oferta</span>
           </div>
         )}
+
+        {showWholesale && (
+          <div className="product-card-badge" style={{ top: product.isOffer ? '38px' : '8px', left: '8px' }}>
+            <span className="badge badge-cyan">Mayorista</span>
+          </div>
+        )}
+
+        {product.inStock === false && (
+          <div className="product-card-badge" style={{ top: '8px', right: '8px' }}>
+            <span className="badge" style={{ background: 'var(--accent-magenta)', color: 'white' }}>❌ Sin Stock</span>
+          </div>
+        )}
+
+        <img
+          className="product-card-image"
+          src={imageUrl}
+          alt={product.name}
+          loading="lazy"
+        />
+      </div>
+
+      {/* 📝 Información descriptiva y precio abajo */}
+      <div className="product-card-body">
+        <div>
+          <span className="product-card-brand">{product.brand}</span>
+          <h3 className="product-card-name" title={product.name}>{product.name}</h3>
+        </div>
+
+        <div>
+          <div className="product-card-price-row">
+            <span className="price">{formatPrice(currentPrice)}</span>
+            {product.isOffer && currentPrice !== originalPrice && (
+              <span className="price-old">{formatPrice(originalPrice)}</span>
+            )}
+          </div>
+
+          {isAuthenticated ? (
+            <button 
+              className="product-card-btn" 
+              onClick={handleAddToCart}
+              disabled={product.inStock === false}
+              style={{ opacity: product.inStock === false ? 0.5 : 1, cursor: product.inStock === false ? 'not-allowed' : 'pointer' }}
+            >
+              <ShoppingCart size={14} />
+              {product.inStock === false ? 'Sin Stock' : 'Agregar'}
+            </button>
+          ) : (
+            <div className="product-card-btn" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-dim)', color: 'var(--text-secondary)' }}>
+              <Eye size={14} />
+              Ver detalle
+            </div>
+          )}
+        </div>
       </div>
     </Link>
   );

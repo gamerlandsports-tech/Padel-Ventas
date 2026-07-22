@@ -6,8 +6,7 @@ import { formatPrice } from '../../utils/formatters';
 
 /**
  * Tarjeta de producto agrupado por modelo (zapatillas / indumentaria).
- * Muestra los talles disponibles en la card; al hacer clic en la imagen
- * abre un modal para elegir talle + cantidad.
+ * Muestra la imagen limpia arriba y la información con selector de talles por debajo.
  */
 export default function ProductCardGrouped({ group, index = 0 }) {
   const { isAuthenticated, isWholesale } = useAuth();
@@ -22,7 +21,7 @@ export default function ProductCardGrouped({ group, index = 0 }) {
   const imageUrl = group.images?.[0]
     || `https://placehold.co/400x600/12121a/00f0ff?text=${encodeURIComponent(group.baseName)}`;
 
-  // Precio base del grupo (puede variar por talle, usamos el representativo)
+  // Precio base del grupo
   const getPrice = (v) => {
     if (!v) return null;
     return v.isOffer
@@ -33,7 +32,6 @@ export default function ProductCardGrouped({ group, index = 0 }) {
   const baseVariant = group.variants[0];
   const displayPrice = getPrice(baseVariant);
 
-  // Abre el modal al hacer click en la imagen o en "Agregar"
   const openModal = (e, preselectedSize = null) => {
     e.preventDefault();
     e.stopPropagation();
@@ -47,7 +45,6 @@ export default function ProductCardGrouped({ group, index = 0 }) {
   const confirmAdd = () => {
     const variant = group.variants.find(v => v.size === modalSize);
     if (!variant) return;
-    // Construimos un "product-like" object que CartContext entiende
     addItem({
       id: variant.productId,
       name: variant.name || `${group.brand} ${group.baseName} T.${variant.size}`,
@@ -72,68 +69,73 @@ export default function ProductCardGrouped({ group, index = 0 }) {
         className="product-card"
         style={{ animationDelay: `${index * 0.05}s`, cursor: 'default' }}
       >
-        {/* Offer badge */}
-        {group.isOffer && (
-          <div className="product-card-badge">
-            <span className="badge badge-magenta">🔥 Oferta</span>
-          </div>
-        )}
-        {showWholesale && (
-          <div className="product-card-badge" style={{ top: group.isOffer ? '48px' : '12px' }}>
-            <span className="badge badge-cyan">Mayorista</span>
-          </div>
-        )}
-
-        {/* Imagen — click abre modal */}
-        <img
-          className="product-card-image"
-          src={imageUrl}
-          alt={group.baseName}
-          loading="lazy"
+        {/* 📸 Imagen limpia arriba (100% visible) */}
+        <div
+          className="product-card-image-box"
           onClick={isAuthenticated ? openModal : undefined}
           style={{ cursor: isAuthenticated ? 'pointer' : 'default' }}
-        />
+        >
+          {group.isOffer && (
+            <div className="product-card-badge" style={{ top: '8px', left: '8px' }}>
+              <span className="badge badge-magenta">🔥 Oferta</span>
+            </div>
+          )}
+          {showWholesale && (
+            <div className="product-card-badge" style={{ top: group.isOffer ? '38px' : '8px', left: '8px' }}>
+              <span className="badge badge-cyan">Mayorista</span>
+            </div>
+          )}
 
-        {/* Overlay con talles */}
-        <div className="product-card-overlay" style={{ gap: '6px' }}>
-          <span className="product-card-brand">{group.brand}</span>
-          <h3 className="product-card-name" style={{ fontSize: 'var(--font-sm)', marginBottom: '4px' }}>
-            {group.baseName}
-          </h3>
+          <img
+            className="product-card-image"
+            src={imageUrl}
+            alt={group.baseName}
+            loading="lazy"
+          />
+        </div>
 
-          {/* Precio */}
-          <div className="product-card-price-row" style={{ marginBottom: '6px' }}>
-            <span className="price">{formatPrice(displayPrice)}</span>
-          </div>
+        {/* 📝 Información y selector de talles por debajo */}
+        <div className="product-card-body">
+          <div>
+            <span className="product-card-brand">{group.brand}</span>
+            <h3 className="product-card-name" title={group.baseName}>
+              {group.baseName}
+            </h3>
 
-          {/* ─── Selector de talles ─── */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
-            {group.variants.map(v => (
-              <button
-                key={v.size}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setSelectedSize(v.size);
-                }}
-                disabled={!v.inStock}
-                style={{
-                  padding: '2px 7px',
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  borderRadius: '4px',
-                  border: `1.5px solid ${selectedSize === v.size ? 'var(--accent-cyan)' : 'var(--border-dim)'}`,
-                  background: selectedSize === v.size ? 'var(--accent-cyan)' : 'transparent',
-                  color: selectedSize === v.size ? '#000' : v.inStock ? 'var(--text-primary)' : 'var(--text-muted)',
-                  cursor: v.inStock ? 'pointer' : 'not-allowed',
-                  opacity: v.inStock ? 1 : 0.4,
-                  textDecoration: !v.inStock ? 'line-through' : 'none',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {v.size}
-              </button>
-            ))}
+            {/* Precio */}
+            <div className="product-card-price-row">
+              <span className="price">{formatPrice(displayPrice)}</span>
+            </div>
+
+            {/* Selector de talles inline */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', margin: '8px 0' }}>
+              {group.variants.map(v => (
+                <button
+                  key={v.size}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedSize(v.size);
+                  }}
+                  disabled={!v.inStock}
+                  style={{
+                    padding: '2px 7px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    borderRadius: '4px',
+                    border: `1.5px solid ${selectedSize === v.size ? 'var(--accent-cyan)' : 'var(--border-dim)'}`,
+                    background: selectedSize === v.size ? 'var(--accent-cyan)' : 'transparent',
+                    color: selectedSize === v.size ? '#000' : v.inStock ? 'var(--text-primary)' : 'var(--text-muted)',
+                    cursor: v.inStock ? 'pointer' : 'not-allowed',
+                    opacity: v.inStock ? 1 : 0.4,
+                    textDecoration: !v.inStock ? 'line-through' : 'none',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {v.size}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Botón agregar / ver */}

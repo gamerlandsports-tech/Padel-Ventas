@@ -179,7 +179,8 @@
 /* ─── PRODUCT CARD (Story Style) ─── */
 .product-card {
   position: relative;
-  aspect-ratio: 3/4;
+  display: flex;
+  flex-direction: column;
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
@@ -187,59 +188,70 @@
   border: 1px solid var(--border-dim);
   transition: all var(--transition-normal);
   animation: slide-up 0.5s ease backwards;
+  height: 100%;
 }
 
 .product-card:hover {
   border-color: var(--border-glow-cyan);
   box-shadow: var(--shadow-glow-cyan), var(--shadow-lg);
-  transform: translateY(-6px) scale(1.02);
+  transform: translateY(-5px);
+}
+
+.product-card-image-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
 }
 
 .product-card-image {
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 8px;
   transition: transform var(--transition-slow);
   background: transparent;
 }
 
 .product-card:hover .product-card-image {
-  transform: scale(1.08);
+  transform: scale(1.06);
 }
 
-.product-card-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: var(--space-lg);
-  background: linear-gradient(to top, rgba(10,10,15,0.95) 0%, rgba(10,10,15,0.7) 50%, transparent 100%);
+.product-card-body {
+  padding: var(--space-md);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  min-height: 50%;
+  flex: 1;
+  justify-content: space-between;
+  background: var(--bg-card);
 }
 
 .product-card-brand {
+  display: block;
   font-family: var(--font-display);
   font-size: var(--font-xs);
   color: var(--accent-cyan);
   text-transform: uppercase;
   letter-spacing: 2px;
-  margin-bottom: var(--space-xs);
+  margin-bottom: 4px;
 }
 
 .product-card-name {
   font-family: var(--font-display);
-  font-size: var(--font-md);
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: var(--space-sm);
-  line-height: 1.3;
+  margin-bottom: var(--space-xs);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.7em;
 }
 
 .product-card-price-row {
