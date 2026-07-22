@@ -72,8 +72,13 @@ export function groupProducts(products, category) {
 
     const group = map.get(key);
 
-    // Si este producto tiene imágenes y el grupo aún no tiene, usar las suyas
-    if ((!group.images || group.images.length === 0) && p.images?.length) {
+    // Si este variante tiene fotos reales (que no son placehold.co), priorizar sus imágenes sobre las del grupo
+    const pHasRealImages = p.images?.some(img => typeof img === 'string' && !img.includes('placehold.co'));
+    const groupHasRealImages = group.images?.some(img => typeof img === 'string' && !img.includes('placehold.co'));
+
+    if (pHasRealImages && (!groupHasRealImages || p.images.length > group.images.length)) {
+      group.images = p.images;
+    } else if ((!group.images || group.images.length === 0) && p.images?.length) {
       group.images = p.images;
     }
 

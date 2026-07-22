@@ -3,6 +3,7 @@ import { doc, setDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { CATEGORIES } from '../../utils/constants';
 import { ArrowLeft, Upload, X, Save, Link } from 'lucide-react';
+import { extractVariant } from '../../utils/productGrouping';
 
 // Cloudinary config - subida directa sin backend (upload preset público)
 const CLOUDINARY_CLOUD_NAME = 'dpadelventa';
@@ -242,6 +243,34 @@ export default function ProductForm({ product, onClose }) {
     try {
       if (isEditing) {
         await setDoc(doc(db, 'products', product.id), payload, { merge: true });
+
+        // Si es zapatillas o indumentaria y se cargaron imágenes reales, propagar las fotos a todos los talles del mismo modelo
+        if ((formData.category === 'zapatillas' || formData.category === 'indumentaria') && images.length > 0) {
+          try {
+            const { baseName } = extractVariant(formData.name, formData.category);
+            const normBrand = (formData.brand || '').toLowerCase().trim();
+            const normBase = baseName.toLowerCase().trim();
+
+            if (normBase) {
+              const snap = await getDocs(collection(db, 'products'));
+              for (const d of snap.docs) {
+                if (d.id === product.id) continue;
+                const siblingData = d.data();
+                if (siblingData.category === formData.category) {
+                  const siblingVariant = extractVariant(siblingData.name || '', siblingData.category);
+                  if (
+                    (siblingData.brand || '').toLowerCase().trim() === normBrand &&
+                    siblingVariant.baseName.toLowerCase().trim() === normBase
+                  ) {
+                    await setDoc(doc(db, 'products', d.id), { images }, { merge: true });
+                  }
+                }
+              }
+            }
+          } catch (propErr) {
+            console.warn('Error propagando imágenes a variantes:', propErr);
+          }
+        }
       } else {
         payload.createdAt = new Date();
         await addDoc(collection(db, 'products'), payload);
