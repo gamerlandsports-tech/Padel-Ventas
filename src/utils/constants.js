@@ -40,9 +40,11 @@ export const PALETA_TEXTURAS = ['Lisa', 'Rugosa', '3D'];
 // Cada entrada: { label: 'Nombre visible', aliases: ['variante1', 'variante2', ...] }
 export const BRANDS = [
   { label: 'Adidas',      aliases: ['Adidas'] },
+  { label: 'Babolat',     aliases: ['Babolat'] },
   { label: 'Black Crown', aliases: ['Black Crown', 'Blackcrown'] },
   { label: 'Bullpadel',   aliases: ['Bullpadel'] },
   { label: 'Coast',       aliases: ['Coast'] },
+  { label: 'Head',        aliases: ['Head'] },
   { label: 'Hirostar',    aliases: ['Hirostar'] },
   { label: 'Hyperlight',  aliases: ['Hyperlight'] },
   { label: "J'Hayber",   aliases: ["J'Hayber", 'JHayber', 'J Hayber'] },
@@ -52,15 +54,18 @@ export const BRANDS = [
   { label: 'Nox',         aliases: ['Nox'] },
   { label: 'Odea',        aliases: ['Odea', 'Odear'] },
   { label: 'OD PRO',      aliases: ['OD PRO'] },
+  { label: 'Prokennex',  aliases: ['Prokennex'] },
   { label: 'Royal',       aliases: ['Royal'] },
   { label: 'Sane',        aliases: ['Sane'] },
   { label: 'Saro',        aliases: ['Saro'] },
   { label: 'Siux',        aliases: ['Siux'] },
   { label: 'Softee',      aliases: ['Softee'] },
+  { label: 'StarVie',     aliases: ['StarVie', 'Star Vie'] },
   { label: 'Toalson',     aliases: ['Toalson'] },
+  { label: 'Varlion',     aliases: ['Varlion'] },
   { label: 'Versus',      aliases: ['Versus'] },
   { label: 'Wilson',      aliases: ['Wilson'] },
-  { label: 'Winar',       aliases: ['Winar'] },
+  { label: 'Winar',       aliases: ['Winar', 'Wiinar'] },
   { label: 'Wingpadel',   aliases: ['Wingpadel'] },
 ];
 
