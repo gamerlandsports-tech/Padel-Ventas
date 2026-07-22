@@ -14,10 +14,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Filtros estrictos para excluir marcas de agua Y cualquier imagen con personas, modelos o animaciones
 const BAD_KEYWORDS = [
   'watermark', 'wm', 'shutterstock', 'stock-photo', 'vecteezy', 
   'freepik', 'alamy', 'depositphotos', 'dreamstime', 'marca-de-agua', 
-  'logo', 'icon', 'banner', 'vector', 'illustration', ' dibujo'
+  'logo', 'icon', 'banner', 'vector', 'illustration', 'dibujo',
+  'person', 'people', 'man', 'woman', 'model', 'player', 'jugador', 'jugadora', 
+  'modelo', 'hombre', 'mujer', 'chico', 'chica', 'face', 'portrait', 'persona', 
+  'foto-persona', 'lifestyle', 'editorial', 'avatar', 'character', 'cartoon', 
+  'anime', 'animation', 'wearing', 'outfit', 'pose', 'body', 'cuerpo', 'cara', 
+  'rostro', 'selfie', 'lookbook', 'streetstyle'
 ];
 
 async function fetchBingImageUrls(query, requiredCount) {
@@ -54,7 +60,7 @@ async function fetchBingImageUrls(query, requiredCount) {
         continue;
       }
 
-      // No tener marcas de agua ni logos
+      // No tener marcas de agua, ni personas/modelos/jugadores
       if (BAD_KEYWORDS.some(bad => lower.includes(bad))) {
         continue;
       }
@@ -98,12 +104,12 @@ async function verifyImageUrl(url, timeoutMs = 3500) {
 }
 
 async function processAllStockProducts() {
-  console.log("=== INICIANDO BÚSQUEDA Y ASIGNACIÓN DE IMÁGENES PROFESIONALES ===");
+  console.log("=== BÚSQUEDA EXCLUSIVA DE FOTOS DE PRODUCTO ISOLADO (SIN PERSONAS / SIN MODELOS) ===");
   console.log("Categorías objetivo CON STOCK:");
-  console.log(" - Paletas: 4 imágenes por producto");
-  console.log(" - Bolsos: 4 imágenes por producto");
-  console.log(" - Zapatillas: 4 imágenes por producto");
-  console.log(" - Indumentaria / Remeras: 2 imágenes por producto\n");
+  console.log(" - Paletas: 4 imágenes de producto aislado");
+  console.log(" - Bolsos: 4 imágenes de producto aislado");
+  console.log(" - Zapatillas: 4 imágenes de producto aislado");
+  console.log(" - Indumentaria / Remeras: 2 imágenes de prenda aislada sin persona\n");
 
   const snapshot = await getDocs(collection(db, 'products'));
   const docs = snapshot.docs;
@@ -118,7 +124,6 @@ async function processAllStockProducts() {
   console.log(`Encontrados ${stockDocs.length} productos en stock a procesar.\n`);
 
   let updatedCount = 0;
-  let skippedCount = 0;
 
   for (let idx = 0; idx < stockDocs.length; idx++) {
     const docSnap = stockDocs[idx];
@@ -127,26 +132,20 @@ async function processAllStockProducts() {
     // Determinar cantidad requerida de fotos
     const requiredCount = p.category === 'indumentaria' ? 2 : 4;
 
-    // Si el producto ya tiene exactamente las fotos asignadas y no son placehold.co, omitir
-    const hasValidImages = p.images?.length === requiredCount && !p.images[0].includes('placehold.co');
-    if (hasValidImages) {
-      skippedCount++;
-      continue;
-    }
-
-    // Construir término de búsqueda preciso
+    // Construir término de búsqueda orientado estrictamente a "producto aislado / solo el artículo"
     const searchTerms = [];
     if (p.brand && p.brand !== 'Otras') searchTerms.push(p.brand);
     searchTerms.push(p.name);
-    if (p.category === 'paletas') searchTerms.push('paleta padel');
-    else if (p.category === 'zapatillas') searchTerms.push('zapatillas padel');
-    else if (p.category === 'bolsos') searchTerms.push('bolso padel');
-    else if (p.category === 'indumentaria') searchTerms.push('indumentaria padel');
+    
+    if (p.category === 'paletas') searchTerms.push('paleta padel producto aislado');
+    else if (p.category === 'zapatillas') searchTerms.push('zapatillas padel producto solo');
+    else if (p.category === 'bolsos') searchTerms.push('bolso padel producto solo');
+    else if (p.category === 'indumentaria') searchTerms.push('prenda producto solo sin persona');
 
     const query = searchTerms.join(' ');
-    process.stdout.write(`[${idx + 1}/${stockDocs.length}] Buscando ${requiredCount} fotos para "${p.brand} ${p.name.substring(0, 35)}"... `);
+    process.stdout.write(`[${idx + 1}/${stockDocs.length}] Buscando ${requiredCount} fotos de producto solo para "${p.brand} ${p.name.substring(0, 35)}"... `);
 
-    const candidates = await fetchBingImageUrls(query, requiredCount * 3);
+    const candidates = await fetchBingImageUrls(query, requiredCount * 4);
     const validImages = [];
 
     for (const url of candidates) {
@@ -162,20 +161,19 @@ async function processAllStockProducts() {
         images: validImages,
         updatedAt: new Date()
       });
-      console.log(`✓ Asignadas ${validImages.length}/${requiredCount} imágenes.`);
+      console.log(`✓ Asignadas ${validImages.length}/${requiredCount} fotos exclusivas de producto.`);
       updatedCount++;
     } else {
-      console.log(`⚠️ Sin imágenes accesibles (se mantiene placeholder por ahora).`);
+      console.log(`⚠️ Sin fotos aisladas encontradas (se conserva placeholder seguro).`);
     }
 
     // Pequeño retardo para no saturar
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 350));
   }
 
   console.log(`\n==================================================`);
-  console.log(`🎉 ¡PROCESO DE IMÁGENES FINALIZADO CON ÉXITO!`);
-  console.log(`📸 Productos actualizados con fotos profesionales: ${updatedCount}`);
-  console.log(`⏭ Productos que ya tenían fotos completas: ${skippedCount}`);
+  console.log(`🎉 ¡FILTRADO Y ASIGNACIÓN DE FOTOS DE PRODUCTO FINALIZADO!`);
+  console.log(`📸 Productos actualizados con fotos puras de producto: ${updatedCount}`);
   console.log(`==================================================\n`);
 
   process.exit(0);
